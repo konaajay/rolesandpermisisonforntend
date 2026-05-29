@@ -158,7 +158,7 @@ export default function CreateRole() {
   };
 
   const handleDeleteField = async (fieldId) => {
-    if (!window.confirm('Are you sure you want to delete this field?')) return;
+
     setModalMessage(null);
     setModalError(null);
     try {

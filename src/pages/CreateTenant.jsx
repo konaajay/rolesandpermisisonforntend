@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import api from '../services/api';
+import { useNavigate } from 'react-router-dom';
 
 export default function CreateTenant() {
   const [tenantName, setTenantName] = useState('');
@@ -11,6 +12,8 @@ export default function CreateTenant() {
   const [message, setMessage] = useState(null);
   const [error, setError] = useState(null);
   const [result, setResult] = useState(null);
+  
+  const navigate = useNavigate();
 
   const handleCreateTenant = async (e) => {
     e.preventDefault();
@@ -29,15 +32,12 @@ export default function CreateTenant() {
 
     try {
       const response = await api.post('/tenants', payload);
-      setMessage('Tenant Created Successfully!');
+      setMessage('Tenant Created Successfully! Redirecting...');
       setResult(response.data);
-      // Reset form
-      setTenantName('');
-      setTenantCode('');
-      setAdminFirstName('');
-      setAdminLastName('');
-      setAdminEmail('');
-      setAdminPassword('');
+      // Navigate back to tenants list after a short delay
+      setTimeout(() => {
+        navigate('/tenants');
+      }, 1500);
     } catch (err) {
       setError(err.response?.data?.message || err.response?.data || err.message);
     }

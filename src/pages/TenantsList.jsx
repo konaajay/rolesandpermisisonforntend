@@ -5,8 +5,12 @@ import { useNavigate } from 'react-router-dom';
 export default function TenantsList() {
   const navigate = useNavigate();
   const [tenants, setTenants] = useState([]);
-  const [message, setMessage] = useState(null);
-  const [error, setError] = useState(null);
+  const [toast, setToast] = useState(null);
+
+  const showToast = (type, msg) => {
+    setToast({ type, msg });
+    setTimeout(() => setToast(null), 4000);
+  };
   const [selectedTenant, setSelectedTenant] = useState(null);
   const [initialModules, setInitialModules] = useState([]);
   const [moduleDetails, setModuleDetails] = useState({});
@@ -21,7 +25,7 @@ export default function TenantsList() {
       const response = await api.get('/tenants');
       setTenants(response.data);
     } catch (err) {
-      setError(err.response?.data?.message || err.message);
+      showToast('error', err.response?.data?.message || err.message);
     }
   };
 
@@ -30,25 +34,21 @@ export default function TenantsList() {
   }, []);
 
   const handleToggleStatus = async (tenant) => {
-    setMessage(null);
-    setError(null);
     try {
       if (tenant.active) {
         await api.put(`/tenants/${tenant.id}/disable`);
-        setMessage(`Tenant '${tenant.name}' disabled successfully!`);
+        showToast('success', `Tenant '${tenant.name}' disabled successfully!`);
       } else {
         await api.put(`/tenants/${tenant.id}/enable`);
-        setMessage(`Tenant '${tenant.name}' enabled successfully!`);
+        showToast('success', `Tenant '${tenant.name}' enabled successfully!`);
       }
       fetchTenants();
     } catch (err) {
-      setError(err.response?.data?.message || err.message);
+      showToast('error', err.response?.data?.message || err.message);
     }
   };
 
   const handleManageModules = async (tenant) => {
-    setMessage(null);
-    setError(null);
     setSelectedTenant(tenant);
     try {
       const response = await api.get(`/tenants/${tenant.id}/modules`);
@@ -78,7 +78,7 @@ export default function TenantsList() {
       });
       setModuleDetails(details);
     } catch (err) {
-      setError("Failed to fetch modules: " + (err.response?.data?.message || err.message));
+      showToast('error', "Failed to fetch modules: " + (err.response?.data?.message || err.message));
     }
   };
 
@@ -93,8 +93,6 @@ export default function TenantsList() {
   };
 
   const saveModules = async () => {
-    setMessage(null);
-    setError(null);
     try {
       const promises = [];
       
@@ -116,18 +114,32 @@ export default function TenantsList() {
       }
 
       await Promise.all(promises);
-      setMessage(`Modules and subscription details updated successfully for ${selectedTenant.name}!`);
+      showToast('success', `Modules and subscription details updated successfully for ${selectedTenant.name}!`);
       setSelectedTenant(null);
       fetchTenants();
     } catch (err) {
-      setError("Failed to save modules: " + (err.response?.data?.message || err.message));
+      showToast('error', "Failed to save modules: " + (err.response?.data?.message || err.message));
     }
   };
 
   return (
     <div className="container mt-4">
-      {message && <div className="alert alert-success">{message}</div>}
-      {error && <div className="alert alert-danger">{error}</div>}
+      {/* ── Floating Toast Alerts ── */}
+      {toast && (
+        <div
+          className={`position-fixed top-0 end-0 m-3 alert alert-${toast.type === 'success' ? 'success' : 'danger'} shadow-sm border-0 d-flex align-items-center gap-2`}
+          style={{ zIndex: 9999, fontSize: '13px', maxWidth: '380px', animation: 'fadeIn .2s ease' }}
+          role="alert"
+        >
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+            {toast.type === 'success'
+              ? <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"/>
+              : <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16zM7.002 11a1 1 0 1 1 2 0 1 1 0 0 1-2 0zM7.1 4.995a.905.905 0 1 1 1.8 0l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 4.995z"/>
+            }
+          </svg>
+          {toast.msg}
+        </div>
+      )}
 
       <div className="card shadow-sm p-3">
         <div className="d-flex justify-content-between align-items-center mb-3">

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 import { usePermissions } from '../auth/usePermissions';
+import EntityPage from '../components/EntityPage';
 
 export default function UserManager() {
   const [users, setUsers] = useState([]);
@@ -17,6 +18,7 @@ export default function UserManager() {
   const [supervisorUserId, setSupervisorUserId] = useState('');
   const [supervisors, setSupervisors] = useState([]);
   const [editingId, setEditingId] = useState(null);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState(null);
@@ -138,6 +140,7 @@ export default function UserManager() {
       setDynamicFields([]);
       setSupervisors([]);
       setEditingId(null);
+      setIsDrawerOpen(false);
 
       // Refresh list
       fetchUsers();
@@ -157,10 +160,11 @@ export default function UserManager() {
     setSupervisorUserId(user.supervisorUserId || '');
     setGender(user.gender || 'MALE');
     setProfileData(user.profileData || {});
+    setIsDrawerOpen(true);
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this user?')) return;
+
     setMessage(null);
     setError(null);
 
@@ -206,291 +210,195 @@ export default function UserManager() {
   };
 
   return (
-    <div className="container mt-4">
-      <div className="row">
-        {/* Form Column - Hides completely if user doesn't have USER_CREATE and is not editing (USER_UPDATE) */}
-        {(hasPermission('USER_CREATE') || (editingId && hasPermission('USER_UPDATE'))) && (
-          <div className="col-md-4 mb-4">
-            <div className="card p-4 shadow-sm h-100">
-              <h4 className="card-title text-center mb-4">
-                {editingId ? 'Edit User' : 'Onboard User'}
-              </h4>
-
-              {message && <div className="alert alert-success py-2">{message}</div>}
-              {error && <div className="alert alert-danger py-2">{error}</div>}
-
-              <form onSubmit={handleSave}>
-                <div className="mb-2">
-                  <label className="form-label">First Name</label>
-                  <input
-                    type="text"
-                    className="form-control form-control-sm"
-                    value={firstName}
-                    onChange={(e) => setFirstName(e.target.value)}
-                    required
-                  />
-                </div>
-
-                <div className="mb-2">
-                  <label className="form-label">Last Name</label>
-                  <input
-                    type="text"
-                    className="form-control form-control-sm"
-                    value={lastName}
-                    onChange={(e) => setLastName(e.target.value)}
-                    required
-                  />
-                </div>
-
-                <div className="mb-2">
-                  <label className="form-label">Email</label>
-                  <input
-                    type="email"
-                    className="form-control form-control-sm"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    disabled={!!editingId}
-                  />
-                </div>
-
-                {!editingId && (
-                  <div className="mb-2">
-                    <label className="form-label">Password</label>
-                    <input
-                      type="password"
-                      className="form-control form-control-sm"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                    />
-                  </div>
-                )}
-
-                <div className="mb-2">
-                  <label className="form-label">Gender</label>
-                  <select
-                    className="form-select form-select-sm"
-                    value={gender}
-                    onChange={(e) => setGender(e.target.value)}
-                    required
-                  >
-                    <option value="MALE">Male</option>
-                    <option value="FEMALE">Female</option>
-                    <option value="OTHER">Other</option>
-                    <option value="PREFER_NOT_TO_SAY">Prefer not to say</option>
-                  </select>
-                </div>
-
-                <div className="mb-2">
-                  <label className="form-label">Role</label>
-                  <select
-                    className="form-select form-select-sm"
-                    value={selectedRoleId}
-                    onChange={(e) => setSelectedRoleId(e.target.value)}
-                    required
-                  >
-                    <option value="">-- Select Role --</option>
-                    {roles.map((r) => (
-                      <option key={r.id} value={r.id}>
-                        {r.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {supervisors.length > 0 && (
-                  <div className="mb-2">
-                    <label className="form-label">Supervisor / Reporting Lead</label>
-                    <select
-                      className="form-select form-select-sm"
-                      value={supervisorUserId}
-                      onChange={(e) => setSupervisorUserId(e.target.value)}
-                    >
-                      <option value="">-- No Supervisor --</option>
-                      {supervisors.map((s) => (
-                        <option key={s.id} value={s.id}>
-                          {s.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-
-                <div className="mb-3">
-                  <label className="form-label">Phone Number</label>
-                  <input
-                    type="text"
-                    className="form-control form-control-sm"
-                    value={phoneNumber}
-                    onChange={(e) => setPhoneNumber(e.target.value)}
-                  />
-                </div>
-
-                {dynamicFields.length > 0 && (
-                  <div className="border rounded p-3 mb-3 bg-light">
-                    <h6 className="border-bottom pb-2 mb-3">Additional Details</h6>
-                    {dynamicFields.map(field => {
-                      const value = profileData[field.fieldName] || '';
-                      const handleChange = (val) => {
-                        setProfileData(prev => ({
-                          ...prev,
-                          [field.fieldName]: val
-                        }));
-                      };
-
-                      if (field.type === 'DROPDOWN') {
-                        return (
-                          <div className="mb-2" key={field.id || field.fieldName}>
-                            <label className="form-label mb-1">
-                              {field.label} {field.required && <span className="text-danger">*</span>}
-                            </label>
-                            <select
-                              className="form-select form-select-sm"
-                              required={field.required}
-                              value={value}
-                              onChange={(e) => handleChange(e.target.value)}
-                            >
-                              <option value="">Select...</option>
-                              {field.options && field.options.map(opt => (
-                                <option key={opt} value={opt}>{opt}</option>
-                              ))}
-                            </select>
-                          </div>
-                        );
-                      }
-
-                      return (
-                        <div className="mb-2" key={field.id || field.fieldName}>
-                          <label className="form-label mb-1">
-                            {field.label} {field.required && <span className="text-danger">*</span>}
-                          </label>
-                          <input
-                            type={field.type === 'NUMBER' ? 'number' : 'text'}
-                            className="form-control form-control-sm"
-                            required={field.required}
-                            value={value}
-                            onChange={(e) => handleChange(e.target.value)}
-                            placeholder={field.label}
-                          />
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-
-                <div className="d-grid gap-2">
-                  <button type="submit" className="btn btn-primary btn-sm">
-                    {editingId ? 'Save Changes' : 'Onboard'}
-                  </button>
-                  {editingId && (
-                    <button
-                      type="button"
-                      className="btn btn-secondary btn-sm"
-                      onClick={handleCancelEdit}
-                    >
-                      Cancel
-                    </button>
-                  )}
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
-
-        {/* List Column */}
-        <div className={hasPermission('USER_CREATE') || hasPermission('USER_UPDATE') ? "col-md-8" : "col-md-12"}>
-          <div className="card p-3 shadow-sm">
-            <div className="d-flex justify-content-between align-items-center mb-3">
-              <h4 className="card-title mb-0">Users</h4>
-              <button className="btn btn-outline-primary btn-sm" onClick={() => fetchUsers()}>
-                Refresh List
-              </button>
-            </div>
-
-            <div className="table-responsive">
-              <table className="table table-striped table-hover table-sm">
-                <thead className="table-dark">
-                  <tr>
-                    <th>ID</th>
-                    <th>Name</th>
-                    <th>Email</th>
-                    <th>Role</th>
-                    <th>Reports To</th>
-                    <th>Actions</th>
+    <EntityPage
+      title="Users"
+      addButtonLabel={hasPermission('USER_CREATE') ? "Add User" : null}
+      onAddClick={() => { handleCancelEdit(); setIsDrawerOpen(true); }}
+      isDrawerOpen={isDrawerOpen}
+      closeDrawer={() => setIsDrawerOpen(false)}
+      drawerTitle={editingId ? 'Edit User' : 'Onboard User'}
+      table={
+        <div className="table-responsive m-0 p-0">
+          <table className="table table-hover table-sm align-middle mb-0">
+            <thead className="table-light text-secondary small">
+              <tr>
+                <th className="ps-3 border-0">ID</th>
+                <th className="border-0">Name</th>
+                <th className="border-0">Email</th>
+                <th className="border-0">Role</th>
+                <th className="border-0">Reports To</th>
+                <th className="pe-3 border-0 text-end">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="border-top-0">
+              {loading ? (
+                <tr>
+                  <td colSpan="6" className="text-center py-4">
+                    <div className="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
+                    <span className="text-muted small">Loading users...</span>
+                  </td>
+                </tr>
+              ) : error ? (
+                <tr>
+                  <td colSpan="6" className="text-center text-danger py-4 small">
+                    <i className="bi bi-exclamation-triangle-fill me-2"></i>
+                    Failed to load users: {error}
+                  </td>
+                </tr>
+              ) : users.length === 0 ? (
+                <tr>
+                  <td colSpan="6" className="text-center text-muted py-5 small">
+                    <i className="bi bi-person-x fs-2 d-block mb-2 text-light"></i>
+                    No users found.
+                  </td>
+                </tr>
+              ) : (
+                users.map((user) => (
+                  <tr key={user.id}>
+                    <td className="ps-3"><code className="text-muted bg-light px-2 py-1 rounded">{user.leadId || user.employeeId || user.id}</code></td>
+                    <td className="fw-medium text-dark">{user.firstName} {user.lastName}</td>
+                    <td className="text-muted small">{user.email}</td>
+                    <td><span className="badge bg-secondary bg-opacity-10 text-secondary border">{user.roleName || '-'}</span></td>
+                    <td>
+                      {user.supervisorName
+                        ? <span className="badge bg-info bg-opacity-10 text-info border border-info">{user.supervisorName}</span>
+                        : <span className="text-muted small">—</span>}
+                    </td>
+                    <td className="pe-3 text-end">
+                      {hasPermission('USER_UPDATE') && (
+                        <button
+                          className="btn btn-link btn-sm text-primary p-0 me-3 text-decoration-none"
+                          onClick={() => handleEdit(user)}
+                        >
+                          Edit
+                        </button>
+                      )}
+                      {hasPermission('USER_UPDATE') && (
+                        <button
+                          className="btn btn-link btn-sm text-secondary p-0 me-3 text-decoration-none"
+                          onClick={() => handleResetPassword(user.id, user.firstName)}
+                        >
+                          Reset Pwd
+                        </button>
+                      )}
+                      {hasPermission('USER_DELETE') && (
+                        <button
+                          className="btn btn-link btn-sm text-danger p-0 text-decoration-none"
+                          onClick={() => handleDelete(user.id)}
+                        >
+                          Delete
+                        </button>
+                      )}
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {loading ? (
-                    <tr>
-                      <td colSpan="6" className="text-center py-4">
-                        <div className="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
-                        <span className="text-muted">Loading users...</span>
-                      </td>
-                    </tr>
-                  ) : error ? (
-                    <tr>
-                      <td colSpan="6" className="text-center text-danger py-4">
-                        <i className="bi bi-exclamation-triangle-fill me-2"></i>
-                        Failed to load users: {error}
-                      </td>
-                    </tr>
-                  ) : users.length === 0 ? (
-                    <tr>
-                      <td colSpan="6" className="text-center text-muted py-3">
-                        No users found.
-                      </td>
-                    </tr>
-                  ) : (
-                    users.map((user) => (
-                      <tr key={user.id}>
-                        <td><code>{user.leadId || user.employeeId || user.id}</code></td>
-                        <td>{user.firstName} {user.lastName}</td>
-                        <td>{user.email}</td>
-                        <td><span className="badge bg-secondary">{user.roleName || '-'}</span></td>
-                        <td>
-                          {user.supervisorName
-                            ? <span className="badge bg-info text-dark">{user.supervisorName}</span>
-                            : <span className="text-muted small">—</span>}
-                        </td>
-                        <td>
-                          {hasPermission('USER_UPDATE') && (
-                            <button
-                              className="btn btn-warning btn-sm me-1"
-                              style={{ fontSize: '0.75rem', padding: '0.1rem 0.3rem' }}
-                              onClick={() => handleEdit(user)}
-                            >
-                              Edit
-                            </button>
-                          )}
-                          {hasPermission('USER_DELETE') && (
-                            <button
-                              className="btn btn-danger btn-sm"
-                              style={{ fontSize: '0.75rem', padding: '0.1rem 0.3rem' }}
-                              onClick={() => handleDelete(user.id)}
-                            >
-                              Delete
-                            </button>
-                          )}
-                          {hasPermission('USER_UPDATE') && (
-                            <button
-                              className="btn btn-info btn-sm ms-1 text-white"
-                              style={{ fontSize: '0.75rem', padding: '0.1rem 0.3rem' }}
-                              onClick={() => handleResetPassword(user.id, user.firstName)}
-                            >
-                              Reset Pwd
-                            </button>
-                          )}
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      }
+      form={
+        <form onSubmit={handleSave} className="p-4">
+          {message && <div className="alert alert-success py-2 small border-0 bg-success bg-opacity-10 text-success">{message}</div>}
+          {error && <div className="alert alert-danger py-2 small border-0 bg-danger bg-opacity-10 text-danger">{error}</div>}
+
+          <h6 className="fw-bold mb-3">Personal Details</h6>
+          <div className="row g-3 mb-4">
+            <div className="col-md-6">
+              <label className="form-label small fw-medium text-secondary mb-1">First Name</label>
+              <input type="text" className="form-control form-control-sm" style={{height:'36px'}} value={firstName} onChange={(e) => setFirstName(e.target.value)} required />
+            </div>
+            <div className="col-md-6">
+              <label className="form-label small fw-medium text-secondary mb-1">Last Name</label>
+              <input type="text" className="form-control form-control-sm" style={{height:'36px'}} value={lastName} onChange={(e) => setLastName(e.target.value)} required />
+            </div>
+            <div className="col-md-12">
+              <label className="form-label small fw-medium text-secondary mb-1">Email</label>
+              <input type="email" className="form-control form-control-sm" style={{height:'36px'}} value={email} onChange={(e) => setEmail(e.target.value)} required disabled={!!editingId} />
+            </div>
+            {!editingId && (
+              <div className="col-md-12">
+                <label className="form-label small fw-medium text-secondary mb-1">Password</label>
+                <input type="password" className="form-control form-control-sm" style={{height:'36px'}} value={password} onChange={(e) => setPassword(e.target.value)} required />
+              </div>
+            )}
+            <div className="col-md-6">
+              <label className="form-label small fw-medium text-secondary mb-1">Phone Number</label>
+              <input type="text" className="form-control form-control-sm" style={{height:'36px'}} value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)} />
+            </div>
+            <div className="col-md-6">
+              <label className="form-label small fw-medium text-secondary mb-1">Gender</label>
+              <select className="form-select form-select-sm" style={{height:'36px'}} value={gender} onChange={(e) => setGender(e.target.value)} required>
+                <option value="MALE">Male</option>
+                <option value="FEMALE">Female</option>
+                <option value="OTHER">Other</option>
+                <option value="PREFER_NOT_TO_SAY">Prefer not to say</option>
+              </select>
             </div>
           </div>
-        </div>
-      </div>
-    </div>
+
+          <h6 className="fw-bold mb-3 border-top pt-3">Role & Access</h6>
+          <div className="row g-3 mb-4">
+            <div className="col-md-12">
+              <label className="form-label small fw-medium text-secondary mb-1">Role</label>
+              <select className="form-select form-select-sm" style={{height:'36px'}} value={selectedRoleId} onChange={(e) => setSelectedRoleId(e.target.value)} required>
+                <option value="">-- Select Role --</option>
+                {roles.map((r) => (
+                  <option key={r.id} value={r.id}>{r.name}</option>
+                ))}
+              </select>
+            </div>
+            {supervisors.length > 0 && (
+              <div className="col-md-12">
+                <label className="form-label small fw-medium text-secondary mb-1">Reports To</label>
+                <select className="form-select form-select-sm" style={{height:'36px'}} value={supervisorUserId} onChange={(e) => setSupervisorUserId(e.target.value)}>
+                  <option value="">-- No Supervisor --</option>
+                  {supervisors.map((s) => (
+                    <option key={s.id} value={s.id}>{s.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+          </div>
+
+          {dynamicFields.length > 0 && (
+            <>
+              <h6 className="fw-bold mb-3 border-top pt-3">Additional Details</h6>
+              <div className="row g-3 mb-4">
+                {dynamicFields.map(field => {
+                  const value = profileData[field.fieldName] || '';
+                  const handleChange = (val) => setProfileData(prev => ({ ...prev, [field.fieldName]: val }));
+
+                  return (
+                    <div className="col-md-12" key={field.id || field.fieldName}>
+                      <label className="form-label small fw-medium text-secondary mb-1">
+                        {field.label} {field.required && <span className="text-danger">*</span>}
+                      </label>
+                      {field.type === 'DROPDOWN' ? (
+                        <select className="form-select form-select-sm" style={{height:'36px'}} required={field.required} value={value} onChange={(e) => handleChange(e.target.value)}>
+                          <option value="">Select...</option>
+                          {field.options && field.options.map(opt => (
+                            <option key={opt} value={opt}>{opt}</option>
+                          ))}
+                        </select>
+                      ) : (
+                        <input type={field.type === 'NUMBER' ? 'number' : 'text'} className="form-control form-control-sm" style={{height:'36px'}} required={field.required} value={value} onChange={(e) => handleChange(e.target.value)} placeholder={field.label} />
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          )}
+
+          <div className="mt-4 border-top pt-3 text-end">
+            <button type="button" className="btn btn-light fw-medium me-2" style={{height:'36px'}} onClick={() => setIsDrawerOpen(false)}>Cancel</button>
+            <button type="submit" className="btn btn-primary fw-medium px-4" style={{height:'36px'}} disabled={loading}>
+              {editingId ? 'Save Changes' : 'Create User'}
+            </button>
+          </div>
+        </form>
+      }
+    />
   );
 }

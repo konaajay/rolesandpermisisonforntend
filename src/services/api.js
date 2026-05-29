@@ -41,7 +41,7 @@ api.interceptors.response.use(
         window.location.href = '/login';
       } else if (error.response.status === 403) {
         // Authenticated but unauthorized -> break loop and go to unauthorized page
-        if (window.location.pathname !== '/unauthorized') {
+        if (!error.config?.ignore403 && window.location.pathname !== '/unauthorized') {
           window.location.href = '/unauthorized';
         }
       }

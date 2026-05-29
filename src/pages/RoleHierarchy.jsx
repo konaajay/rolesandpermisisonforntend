@@ -72,7 +72,7 @@ export default function RoleHierarchy() {
   };
 
   const handleDelete = async (roleId, reportsToRoleId, childName, parentName) => {
-    if (!window.confirm(`Remove link: ${childName} → ${parentName}?`)) return;
+
     setMessage(null);
     setError(null);
     try {
