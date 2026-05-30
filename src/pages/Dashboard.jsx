@@ -51,16 +51,22 @@ export default function Dashboard() {
       </div>
 
       {/* Stats */}
-      <div className="row g-4 mb-5">
-        <StatCard title="Total Users" value={stats.totalUsers} color="primary" loading={loading}
-          icon="👥" sub={`Across ${isPlatformAdmin ? 'all tenants' : 'your organisation'}`} onClick={() => navigate('/users')} />
-        <StatCard title="Active Roles" value={stats.totalRoles} color="success" loading={loading}
-          icon="🔑" sub="Roles configured" onClick={() => navigate('/roles')} />
-        <StatCard title="Active Sessions" value="—" color="warning" loading={false}
-          icon="⚡" sub="Coming soon" />
-        <StatCard title="Modules" value="—" color="info" loading={false}
-          icon="🧩" sub="Coming soon" />
-      </div>
+      {isPlatformAdmin ? (
+        <>
+          <h6 className="fw-bold text-dark mb-3 text-uppercase" style={{ fontSize: '13px', letterSpacing: '0.5px' }}>Platform Overview</h6>
+          <div className="row g-4 mb-5">
+            <StatCard title="Total Users" value={stats.totalUsers} color="success" loading={loading} icon="👥" sub="Across all tenants" onClick={() => navigate('/users')} />
+            <StatCard title="Active Roles" value={stats.totalRoles} color="primary" loading={loading} icon="🔑" sub="System roles configured" onClick={() => navigate('/roles')} />
+          </div>
+        </>
+      ) : (
+        <div className="row g-4 mb-5">
+          <StatCard title="Total Users" value={stats.totalUsers} color="primary" loading={loading}
+            icon="👥" sub="Across your organisation" onClick={() => navigate('/users')} />
+          <StatCard title="Active Roles" value={stats.totalRoles} color="success" loading={loading}
+            icon="🔑" sub="Roles configured" onClick={() => navigate('/roles')} />
+        </div>
+      )}
 
       {/* Quick Actions */}
       <div className="card border-0 shadow-sm rounded-3 p-4">

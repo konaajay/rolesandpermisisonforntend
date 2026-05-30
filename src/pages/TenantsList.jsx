@@ -192,9 +192,9 @@ export default function TenantsList() {
                         <>
                           <button
                             className="btn btn-info btn-sm me-2 text-white"
-                            onClick={() => handleManageModules(tenant)}
+                            onClick={() => navigate(`/tenants/${tenant.id}`)}
                           >
-                            Modules
+                            Details
                           </button>
                           <button
                             className={`btn btn-${tenant.active ? 'danger' : 'success'} btn-sm`}

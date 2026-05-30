@@ -33,68 +33,66 @@ export default function Sidebar() {
       </div>
 
       <div className="p-3 flex-grow-1">
-        {isPlatformAdmin ? (
+        {isPlatformAdmin && (
           <>
-            <div className={section} style={sectionStyle}>Platform Admin</div>
+            <div className={section} style={sectionStyle}>Platform Dashboard</div>
             <ul className={ul}>
               <li className="nav-item"><Link className={`${link} ${isActive('/')}`} to="/">Dashboard</Link></li>
             </ul>
 
-            <div className={section} style={sectionStyle}>Tenants</div>
+            <div className={section} style={sectionStyle}>Tenant Management</div>
             <ul className={ul}>
-              <li className="nav-item"><Link className={`${link} ${isActive('/tenants', false)}`} to="/tenants">Tenant List</Link></li>
-            </ul>
-
-            <div className={section} style={sectionStyle}>System</div>
-            <ul className={ul}>
-              <li className="nav-item"><Link className={`${link} ${isActive('/settings/formats', false)}`} to="/settings/formats">Settings</Link></li>
+              <li className="nav-item"><Link className={`${link} ${isActive('/tenants', false)}`} to="/tenants">Tenants</Link></li>
             </ul>
           </>
-        ) : (
+        )}
+
+        {!isPlatformAdmin && (
           <>
             <div className={section} style={sectionStyle}>Tenant Admin</div>
             <ul className={ul}>
               <li className="nav-item"><Link className={`${link} ${isActive('/')}`} to="/">Dashboard</Link></li>
             </ul>
+          </>
+        )}
 
-            {(hasPermission('USER_VIEW') || hasPermission('ROLE_CREATE') || hasPermission('PERMISSION_CREATE')) && (
+        {(hasPermission('USER_VIEW') || hasPermission('ROLE_CREATE') || hasPermission('PERMISSION_CREATE')) && (
+          <>
+            <div className={section} style={sectionStyle}>Access Control</div>
+            <ul className={ul}>
+              {hasPermission('USER_VIEW') && isModuleEnabled('EMPLOYEE') && <li className="nav-item"><Link className={`${link} ${isActive('/users', false)}`} to="/users">Users</Link></li>}
+              {hasPermission('ROLE_CREATE') && <li className="nav-item"><Link className={`${link} ${isActive('/roles', false)}`} to="/roles">Roles</Link></li>}
+              {hasPermission('PERMISSION_CREATE') && <li className="nav-item"><Link className={`${link} ${isActive('/permissions')}`} to="/permissions">Permissions</Link></li>}
+            </ul>
+          </>
+        )}
+
+        {hasPermission('USER_VIEW') && (
+          <>
+            <div className={section} style={sectionStyle}>Settings</div>
+            <ul className={ul}>
+              <li className="nav-item"><Link className={`${link} ${isActive('/settings/company-profile', false)}`} to="/settings/company-profile">Company Profile</Link></li>
+              <li className="nav-item"><Link className={`${link} ${isActive('/settings/id-generation', false)}`} to="/settings/id-generation">ID Generation</Link></li>
+              <li className="nav-item"><Link className={`${link} ${isActive('/settings/templates', false)}`} to="/settings/templates">Templates</Link></li>
+              <li className="nav-item"><Link className={`${link} ${isActive('/settings/certificates', false)}`} to="/settings/certificates">Certificates</Link></li>
+            </ul>
+
+            {isModuleEnabled('HRMS') && (
               <>
-                <div className={section} style={sectionStyle}>Access Control</div>
+                <div className={section} style={sectionStyle}>HRMS</div>
                 <ul className={ul}>
-                  {hasPermission('USER_VIEW') && isModuleEnabled('EMPLOYEE') && <li className="nav-item"><Link className={`${link} ${isActive('/users', false)}`} to="/users">Users</Link></li>}
-                  {hasPermission('ROLE_CREATE') && <li className="nav-item"><Link className={`${link} ${isActive('/roles', false)}`} to="/roles">Roles</Link></li>}
-                  {hasPermission('PERMISSION_CREATE') && <li className="nav-item"><Link className={`${link} ${isActive('/permissions')}`} to="/permissions">Permissions</Link></li>}
+                  <li className="nav-item"><Link className={`${link} ${isActive('/hrms/branches', false)}`} to="/hrms/branches">Branches</Link></li>
+                  <li className="nav-item"><Link className={`${link} ${isActive('/hrms/shifts', false)}`} to="/hrms/shifts">Attendance Shifts</Link></li>
                 </ul>
               </>
             )}
 
-            {hasPermission('USER_VIEW') && (
+            {isModuleEnabled('CRM') && (
               <>
-                <div className={section} style={sectionStyle}>Settings</div>
+                <div className={section} style={sectionStyle}>CRM</div>
                 <ul className={ul}>
-                  <li className="nav-item"><Link className={`${link} ${isActive('/settings/company-profile', false)}`} to="/settings/company-profile">Company Profile</Link></li>
-                  <li className="nav-item"><Link className={`${link} ${isActive('/settings/id-generation', false)}`} to="/settings/id-generation">ID Generation</Link></li>
-                  <li className="nav-item"><Link className={`${link} ${isActive('/settings/templates', false)}`} to="/settings/templates">Templates</Link></li>
+                  <li className="nav-item"><Link className={`${link} ${isActive('/crm/stages', false)}`} to="/crm/stages">Lead Stages</Link></li>
                 </ul>
-
-                {isModuleEnabled('HRMS') && (
-                  <>
-                    <div className={section} style={sectionStyle}>HRMS</div>
-                    <ul className={ul}>
-                      <li className="nav-item"><Link className={`${link} ${isActive('/hrms/branches', false)}`} to="/hrms/branches">Branches</Link></li>
-                      <li className="nav-item"><Link className={`${link} ${isActive('/hrms/shifts', false)}`} to="/hrms/shifts">Attendance Shifts</Link></li>
-                    </ul>
-                  </>
-                )}
-
-                {isModuleEnabled('CRM') && (
-                  <>
-                    <div className={section} style={sectionStyle}>CRM</div>
-                    <ul className={ul}>
-                      <li className="nav-item"><Link className={`${link} ${isActive('/crm/stages', false)}`} to="/crm/stages">Lead Stages</Link></li>
-                    </ul>
-                  </>
-                )}
               </>
             )}
           </>

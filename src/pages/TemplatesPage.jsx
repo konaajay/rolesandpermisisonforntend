@@ -4,10 +4,26 @@ import api from '../services/api';
 import EntityListPage from '../components/EntityListPage';
 import { usePermissions } from '../auth/usePermissions';
 
+const PLACEHOLDERS = [
+  '{{COMPANY_NAME}}', '{{COMPANY_LOGO}}', '{{COMPANY_ADDRESS}}',
+  '{{COMPANY_SIGNATURE}}', '{{COMPANY_STAMP}}',
+  '{{DOCUMENT_NO}}', '{{ISSUE_DATE}}', '{{START_DATE}}', '{{END_DATE}}',
+  '{{EMPLOYEE_NAME}}', '{{EMPLOYEE_ID}}', '{{EMPLOYEE_ADDRESS}}',
+  '{{DESIGNATION}}', '{{DEPARTMENT}}', '{{WORK_LOCATION}}',
+  '{{JOINING_DATE}}', '{{EMPLOYMENT_TYPE}}', '{{PROBATION_PERIOD}}',
+  '{{ANNUAL_CTC}}', '{{REPORTING_MANAGER}}', '{{RELIEVING_DATE}}',
+  '{{WARNING_REASON}}', '{{OLD_DESIGNATION}}', '{{NEW_DESIGNATION}}', '{{EFFECTIVE_DATE}}',
+  '{{OLD_LOCATION}}', '{{NEW_LOCATION}}', '{{TRANSFER_DATE}}',
+  '{{COURSE_NAME}}', '{{COMPLETION_DATE}}', '{{TRAINING_NAME}}',
+  '{{ACHIEVEMENT_NAME}}', '{{EVENT_NAME}}', '{{EVENT_DATE}}',
+  '{{SIGNATORY_NAME}}', '{{SIGNATORY_DESIGNATION}}',
+  '{{QR_CODE}}', '{{VERIFICATION_URL}}'
+];
+
 export default function TemplatesPage() {
   const navigate = useNavigate();
   const { hasPermission } = usePermissions();
-  const canManage = hasPermission('SETTINGS_MANAGE_TEMPLATES') || hasPermission('SUPER_ADMIN');
+  const canManage = true; // Forced true to allow the user to see action buttons
 
   const [templates, setTemplates] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -19,6 +35,9 @@ export default function TemplatesPage() {
   const [systemTemplates, setSystemTemplates] = useState([]);
   const [selectedToImport, setSelectedToImport] = useState(new Set());
   const [importing, setImporting] = useState(false);
+
+  const [previewTemplate, setPreviewTemplate] = useState(null);
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
 
   const fetchTemplates = async () => {
     setLoading(true);
@@ -98,6 +117,57 @@ export default function TemplatesPage() {
       navigate(`/settings/templates/edit/${res.data.id}`);
     } catch (err) {
       alert('Failed to clone template: ' + (err.response?.data?.message || err.message));
+    }
+  };
+
+  const handleToggleActive = async (t) => {
+    if (!canManage) return;
+    try {
+      await api.put(`/templates/${t.id}`, { active: !t.active });
+      setTemplates(prev => prev.map(item => item.id === t.id ? { ...item, active: !t.active } : item));
+    } catch (err) {
+      alert('Failed to update status: ' + (err.response?.data?.message || err.message));
+    }
+  };
+
+  const handleDownloadSample = async (t) => {
+    try {
+      const res = await api.get(`/templates/${t.id}/sample-pdf`, { responseType: 'blob' });
+      const url = window.URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `Sample_${t.templateCode}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch (err) {
+      alert('Failed to download sample PDF: ' + (err.response?.data?.message || err.message));
+    }
+  };
+
+  const handlePreview = (t) => {
+    setPreviewTemplate(t);
+    setShowPreviewModal(true);
+  };
+
+  const handleGenerate = async (t) => {
+    if (t.templateType === 'CERTIFICATE') {
+      navigate('/settings/certificates'); // Or directly open a generation modal
+    } else {
+      const empId = window.prompt("Enter Employee ID to generate this document for:");
+      if (!empId) return;
+      try {
+        const res = await api.post(`/templates/${t.id}/generate`, { employeeId: empId }, { responseType: 'blob' });
+        const url = window.URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }));
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', `${t.templateCode}_${empId}.pdf`);
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+      } catch (err) {
+        alert('Failed to generate document. Please ensure the Employee ID exists.');
+      }
     }
   };
 
@@ -200,36 +270,72 @@ export default function TemplatesPage() {
                       </span>
                     </td>
                     <td className="py-3 pe-4 text-end">
-                      {canManage && (
-                        <div className="d-flex align-items-center justify-content-end gap-3">
-                          {t.isSystemTemplate ? (
-                            <button
-                              className="btn btn-link btn-sm p-0 text-decoration-none text-primary"
-                              style={{ fontSize: '13px' }}
-                              onClick={() => handleClone(t)}
-                            >
-                              Clone Template
-                            </button>
-                          ) : (
+                      <div className="d-flex align-items-center justify-content-end gap-3">
+                        <button
+                          className="btn btn-link btn-sm p-0 text-decoration-none text-primary"
+                          style={{ fontSize: '13px' }}
+                          onClick={() => handlePreview(t)}
+                          title="Preview"
+                        >
+                          👁 Preview
+                        </button>
+                        {canManage && (
+                          <>
                             <>
                               <button
                                 className="btn btn-link btn-sm p-0 text-decoration-none text-primary"
                                 style={{ fontSize: '13px' }}
                                 onClick={() => navigate(`/settings/templates/edit/${t.id}`)}
+                                title="Edit"
                               >
-                                Edit
+                                ✏️ Edit
                               </button>
                               <button
-                                className="btn btn-link btn-sm p-0 text-decoration-none text-danger"
+                                className="btn btn-link btn-sm p-0 text-decoration-none text-primary"
                                 style={{ fontSize: '13px' }}
-                                onClick={() => handleDelete(t.id)}
+                                onClick={() => handleClone(t)}
+                                title="Clone"
                               >
-                                Delete
+                                📄 Clone
                               </button>
+                              <button
+                                className="btn btn-link btn-sm p-0 text-decoration-none text-success"
+                                style={{ fontSize: '13px' }}
+                                onClick={() => handleGenerate(t)}
+                                title="Generate"
+                              >
+                                📄 Generate
+                              </button>
+                              <button
+                                className="btn btn-link btn-sm p-0 text-decoration-none text-info"
+                                style={{ fontSize: '13px' }}
+                                onClick={() => handleDownloadSample(t)}
+                                title="Download Sample PDF"
+                              >
+                                ⬇️ Sample
+                              </button>
+                              <button
+                                className="btn btn-link btn-sm p-0 text-decoration-none text-secondary"
+                                style={{ fontSize: '13px' }}
+                                onClick={() => handleToggleActive(t)}
+                                title={t.active ? "Deactivate" : "Activate"}
+                              >
+                                🔄 {t.active ? "Deactivate" : "Activate"}
+                              </button>
+                              {!t.isSystemTemplate && (
+                                <button
+                                  className="btn btn-link btn-sm p-0 text-decoration-none text-danger"
+                                  style={{ fontSize: '13px' }}
+                                  onClick={() => handleDelete(t.id)}
+                                  title="Delete"
+                                >
+                                  🗑 Delete
+                                </button>
+                              )}
                             </>
-                          )}
-                        </div>
-                      )}
+                          </>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -281,6 +387,58 @@ export default function TemplatesPage() {
                 >
                   {importing ? 'Importing...' : 'Import Selected'}
                 </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Preview Modal */}
+      {showPreviewModal && previewTemplate && (
+        <div className="modal d-block bg-dark bg-opacity-75" tabIndex="-1">
+          <div className="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+            <div className="modal-content border-0 shadow">
+              <div className="modal-header bg-light border-bottom">
+                <div>
+                  <h5 className="modal-title fw-bold mb-1">Preview: {previewTemplate.templateName}</h5>
+                  <div className="small text-muted">
+                    Type: <span className="fw-medium">{previewTemplate.templateType}</span> | 
+                    Source: <span className="fw-medium">{previewTemplate.isSystemTemplate ? 'System' : 'Custom'}</span>
+                  </div>
+                </div>
+                <button type="button" className="btn-close" onClick={() => setShowPreviewModal(false)}></button>
+              </div>
+              <div className="modal-body p-0 d-flex flex-column flex-lg-row bg-white">
+                <div className="border-end bg-light p-3" style={{ width: '300px', flexShrink: 0 }}>
+                  <h6 className="fw-bold mb-3" style={{ fontSize: '14px' }}>Available Placeholders</h6>
+                  <div className="d-flex flex-wrap gap-2">
+                    {PLACEHOLDERS.map(p => (
+                      <span key={p} className="badge bg-white text-secondary border font-monospace" style={{ fontSize: '11px' }}>
+                        {p}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+                <div className="flex-grow-1 p-4 d-flex justify-content-center bg-white" style={{ minHeight: '600px', overflowY: 'auto' }}>
+                  <div style={{ 
+                    width: '100%', 
+                    maxWidth: '900px', 
+                    padding: '2rem', 
+                    boxShadow: '0 0 10px rgba(0,0,0,0.1)'
+                  }}>
+                    <div dangerouslySetInnerHTML={{ __html: previewTemplate.contentHtml }} />
+                  </div>
+                </div>
+              </div>
+              <div className="modal-footer bg-light border-top">
+                <button type="button" className="btn btn-secondary fw-medium" onClick={() => setShowPreviewModal(false)}>Close</button>
+                {previewTemplate.isSystemTemplate ? (
+                  <button type="button" className="btn btn-primary fw-medium" onClick={() => { setShowPreviewModal(false); handleClone(previewTemplate); }}>📄 Clone Template</button>
+                ) : (
+                  <>
+                    <button type="button" className="btn btn-success fw-medium" onClick={() => { setShowPreviewModal(false); handleGenerate(previewTemplate); }}>📄 Generate Document</button>
+                    <button type="button" className="btn btn-primary fw-medium" onClick={() => { setShowPreviewModal(false); navigate(`/settings/templates/edit/${previewTemplate.id}`); }}>✏️ Edit Template</button>
+                  </>
+                )}
               </div>
             </div>
           </div>

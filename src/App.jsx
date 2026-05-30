@@ -26,6 +26,7 @@ import RoleHierarchy from './pages/RoleHierarchy';
 
 // Tenants (Platform Admin)
 import TenantsList  from './pages/TenantsList';
+import TenantDetails from './pages/TenantDetails';
 import CreateTenant from './pages/CreateTenant';
 
 // Settings — Branches
@@ -47,6 +48,8 @@ import IdGenerationSettings from './pages/IdGenerationSettings';
 import TemplatesPage from './pages/TemplatesPage';
 import TemplateFormPage from './pages/TemplateFormPage';
 import CompanyProfilePage from './pages/CompanyProfilePage';
+import CertificatesList from './pages/CertificatesList';
+import PublicVerificationPage from './pages/PublicVerificationPage';
 
 export default function App() {
   return (
@@ -84,6 +87,7 @@ export default function App() {
 
                   {/* ── Tenants (Platform Admin) ── */}
                   <Route path="/tenants"        element={<ProtectedRoute element={<TenantsList />}  permission="TENANT_VIEW" />} />
+                  <Route path="/tenants/:id"    element={<ProtectedRoute element={<TenantDetails />} permission="TENANT_VIEW" />} />
                   <Route path="/create-tenant"  element={<ProtectedRoute element={<CreateTenant />} permission="TENANT_CREATE" />} />
 
                   {/* ── Settings ── */}
@@ -92,6 +96,7 @@ export default function App() {
                   <Route path="/settings/templates"           element={<ProtectedRoute element={<TemplatesPage />} />} />
                   <Route path="/settings/templates/create"    element={<ProtectedRoute element={<TemplateFormPage />} />} />
                   <Route path="/settings/templates/edit/:id"  element={<ProtectedRoute element={<TemplateFormPage />} />} />
+                  <Route path="/settings/certificates"        element={<ProtectedRoute element={<CertificatesList />} />} />
                   <Route path="/settings/*"                   element={<Navigate to="/settings/id-generation" replace />} />
 
                   {/* ── HRMS ── */}
@@ -107,6 +112,9 @@ export default function App() {
                   <Route path="/crm/stages"          element={<ProtectedRoute element={<LeadStageList />} />} />
                   <Route path="/crm/stages/create"   element={<ProtectedRoute element={<LeadStageForm />} />} />
                   <Route path="/crm/stages/edit/:id" element={<ProtectedRoute element={<LeadStageForm />} />} />
+
+                  {/* Public Verification */}
+                  <Route path="/verify/:identifier" element={<PublicVerificationPage />} />
 
                   {/* Fallback */}
                   <Route path="*" element={<Navigate to="/" replace />} />

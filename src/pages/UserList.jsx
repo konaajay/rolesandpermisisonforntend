@@ -68,7 +68,7 @@ export default function UserList() {
   const handleDeactivate = async (user) => {
     const action = user.active ? 'deactivate' : 're-activate';
     try {
-      await api.patch(`/users/${user.id}/deactivate`);
+      await api.patch(`/users/${user.id}/toggle-active`);
       setUsers(prev => prev.map(u => u.id === user.id ? { ...u, active: !u.active } : u));
       showToast('success', `User ${action}d successfully.`);
     } catch (err) {
