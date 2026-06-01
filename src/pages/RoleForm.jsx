@@ -59,8 +59,17 @@ export default function RoleForm() {
   const handleSubmit = async (e) => {
     e.preventDefault(); setError(null); setSuccess(null); setLoading(true);
     try {
-      if (isEdit) await api.put(`/roles/${id}`, { name, description, permissionIds: [] });
-      else await api.post('/roles', { name, description, permissionIds: [] });
+      if (isEdit) {
+        await api.put(`/roles/${id}`, { name, description, permissionIds: [] });
+        if (fieldForm.fieldName && fieldForm.fieldLabel) {
+          const opts = fieldForm.options ? fieldForm.options.split(',').map(s => s.trim()).filter(Boolean) : [];
+          const payload = { fieldName: fieldForm.fieldName, fieldLabel: fieldForm.fieldLabel, fieldType: fieldForm.fieldType, required: fieldForm.required, options: opts, displayOrder: Number(fieldForm.displayOrder) };
+          if (editingFieldId) await api.put(`/roles/${id}/extra-fields/${editingFieldId}`, payload);
+          else await api.post(`/roles/${id}/extra-fields`, payload);
+        }
+      } else {
+        await api.post('/roles', { name, description, permissionIds: [] });
+      }
       setSuccess(isEdit ? 'Role updated.' : 'Role created.');
       setTimeout(() => navigate('/roles'), 900);
     } catch (err) { setError(err.response?.data?.message || err.message); }
@@ -87,8 +96,14 @@ export default function RoleForm() {
     } catch (err) { setFieldMsg('Error: ' + (err.response?.data?.message || err.message)); }
   };
 
-  const handleDeleteField = async (fid) => {
+  const handleFieldKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleSaveField(e);
+    }
+  };
 
+  const handleDeleteField = async (fid) => {
     await api.delete(`/roles/${id}/extra-fields/${fid}`);
     setFields(prev => prev.filter(f => f.id !== fid));
   };
@@ -122,14 +137,14 @@ export default function RoleForm() {
           {fieldMsg && <div className={`alert py-2 small ${fieldMsg.startsWith('Error') ? 'alert-danger' : 'alert-success'} border-0 mb-3`}>{fieldMsg}</div>}
           <div className="bg-light rounded-2 p-3 mb-4">
             <div className="row g-2">
-              <div className="col-md-3"><input className={inputCls} style={inputStyle} placeholder="fieldName (camelCase)" value={fieldForm.fieldName} onChange={e => setFieldForm(p => ({ ...p, fieldName: e.target.value }))} required /></div>
-              <div className="col-md-3"><input className={inputCls} style={inputStyle} placeholder="Display Label" value={fieldForm.fieldLabel} onChange={e => setFieldForm(p => ({ ...p, fieldLabel: e.target.value }))} required /></div>
+              <div className="col-md-3"><input className={inputCls} style={inputStyle} placeholder="fieldName (camelCase)" value={fieldForm.fieldName} onChange={e => setFieldForm(p => ({ ...p, fieldName: e.target.value }))} onKeyDown={handleFieldKeyDown} required /></div>
+              <div className="col-md-3"><input className={inputCls} style={inputStyle} placeholder="Display Label" value={fieldForm.fieldLabel} onChange={e => setFieldForm(p => ({ ...p, fieldLabel: e.target.value }))} onKeyDown={handleFieldKeyDown} required /></div>
               <div className="col-md-2">
                 <select className="form-select form-select-sm border" style={{ height: '36px', fontSize: '13px' }} value={fieldForm.fieldType} onChange={e => setFieldForm(p => ({ ...p, fieldType: e.target.value }))}>
                   <option value="TEXT">Text</option><option value="NUMBER">Number</option><option value="DROPDOWN">Dropdown</option>
                 </select>
               </div>
-              <div className="col-md-3"><input className={inputCls} style={inputStyle} placeholder="Options (comma-sep, dropdown only)" value={fieldForm.options} onChange={e => setFieldForm(p => ({ ...p, options: e.target.value }))} disabled={fieldForm.fieldType !== 'DROPDOWN'} /></div>
+              <div className="col-md-3"><input className={inputCls} style={inputStyle} placeholder="Options (comma-sep, dropdown only)" value={fieldForm.options} onChange={e => setFieldForm(p => ({ ...p, options: e.target.value }))} onKeyDown={handleFieldKeyDown} disabled={fieldForm.fieldType !== 'DROPDOWN'} /></div>
               <div className="col-md-1 d-flex align-items-center gap-2">
                 <input type="checkbox" className="form-check-input" checked={fieldForm.required} onChange={e => setFieldForm(p => ({ ...p, required: e.target.checked }))} id="freq" />
                 <label className="small text-muted" htmlFor="freq">Req</label>

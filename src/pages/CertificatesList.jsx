@@ -1,6 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import api from '../services/api';
 import EntityListPage from '../components/EntityListPage';
+import Select from 'react-select';
+import JoditEditor from 'jodit-react';
 
 export default function CertificatesList() {
   const [certificates, setCertificates] = useState([]);
@@ -15,9 +17,14 @@ export default function CertificatesList() {
   const [generateData, setGenerateData] = useState({
     employeeId: '',
     templateId: '',
-    issuedDate: new Date().toISOString().split('T')[0]
+    issuedDate: new Date().toISOString().split('T')[0],
+    customHtml: '',
+    sendEmail: false
   });
   const [generating, setGenerating] = useState(false);
+  const [previewing, setPreviewing] = useState(false);
+  const [isPreviewMode, setIsPreviewMode] = useState(false);
+  const editorRef = useRef(null);
 
   const [showVerifyModal, setShowVerifyModal] = useState(false);
   const [verifyData, setVerifyData] = useState(null);
@@ -31,7 +38,7 @@ export default function CertificatesList() {
     try {
       const [certRes, tempRes, empRes] = await Promise.all([
         api.get('/certificates'),
-        api.get('/templates?type=CERTIFICATE'),
+        api.get('/templates'),
         api.get('/users')
       ]);
       setCertificates(certRes.data);
@@ -44,19 +51,46 @@ export default function CertificatesList() {
     }
   };
 
+  const handlePreview = async (e) => {
+    e.preventDefault();
+    if (!generateData.employeeId || !generateData.templateId) {
+      alert("Please select both Employee and Template.");
+      return;
+    }
+    setPreviewing(true);
+    try {
+      const payload = {
+        employeeId: generateData.employeeId,
+        templateId: generateData.templateId,
+        issuedDate: new Date(generateData.issuedDate).toISOString()
+      };
+      const res = await api.post('/certificates/preview', payload);
+      setGenerateData(prev => ({ ...prev, customHtml: res.data }));
+      setIsPreviewMode(true);
+    } catch (err) {
+      alert('Failed to load preview: ' + (err.response?.data?.message || err.message));
+    } finally {
+      setPreviewing(false);
+    }
+  };
+
   const handleGenerate = async (e) => {
     e.preventDefault();
     setGenerating(true);
     try {
       const payload = {
-        ...generateData,
-        issuedDate: new Date(generateData.issuedDate).toISOString()
+        employeeId: generateData.employeeId,
+        templateId: generateData.templateId,
+        issuedDate: new Date(generateData.issuedDate).toISOString(),
+        customHtml: generateData.customHtml,
+        sendEmail: generateData.sendEmail
       };
       await api.post('/certificates/generate', payload);
       setShowGenerateModal(false);
+      setIsPreviewMode(false);
       fetchData();
     } catch (err) {
-      alert('Failed to generate certificate: ' + (err.response?.data?.message || err.message));
+      alert('Failed to generate document: ' + (err.response?.data?.message || err.message));
     } finally {
       setGenerating(false);
     }
@@ -78,12 +112,12 @@ export default function CertificatesList() {
   };
 
   const handleRevoke = async (id) => {
-    if (!window.confirm("Are you sure you want to revoke this certificate? This action cannot be fully undone (it will show as revoked publicly).")) return;
+    if (!window.confirm("Are you sure you want to revoke this document?")) return;
     try {
       await api.put(`/certificates/${id}/revoke`);
       fetchData();
     } catch (err) {
-      alert('Failed to revoke certificate: ' + (err.response?.data?.message || err.message));
+      alert('Failed to revoke document: ' + (err.response?.data?.message || err.message));
     }
   };
 
@@ -100,8 +134,8 @@ export default function CertificatesList() {
   return (
     <>
       <EntityListPage
-        title="Employee Certificates"
-        description="Generate, view, and revoke certificates for employees."
+        title="Employee Documents & Certificates"
+        description="Generate, view, and revoke documents and certificates for employees."
         searchValue={search}
         onSearchChange={setSearch}
         loading={loading}
@@ -110,9 +144,13 @@ export default function CertificatesList() {
         headerActions={
           <button
             className="btn btn-primary btn-sm fw-medium"
-            onClick={() => setShowGenerateModal(true)}
+            onClick={() => {
+              setGenerateData({ employeeId: '', templateId: '', issuedDate: new Date().toISOString().split('T')[0], customHtml: '', sendEmail: false });
+              setIsPreviewMode(false);
+              setShowGenerateModal(true);
+            }}
           >
-            + Generate Certificate
+            + Generate Document / Cert
           </button>
         }
       >
@@ -120,7 +158,7 @@ export default function CertificatesList() {
           <table className="table table-hover align-middle mb-0" style={{ fontSize: '13px' }}>
             <thead>
               <tr className="border-bottom" style={{ backgroundColor: '#f8f9fa' }}>
-                <th className="ps-4 py-3 border-0">Certificate No</th>
+                <th className="ps-4 py-3 border-0">Document No</th>
                 <th className="py-3 border-0">Employee ID</th>
                 <th className="py-3 border-0">Template</th>
                 <th className="py-3 border-0">Issued Date</th>
@@ -132,7 +170,7 @@ export default function CertificatesList() {
               {filtered.length === 0 ? (
                 <tr>
                   <td colSpan="6" className="text-center py-5 text-muted small">
-                    No certificates found.
+                    No documents found.
                   </td>
                 </tr>
               ) : (
@@ -172,65 +210,91 @@ export default function CertificatesList() {
 
       {/* Generate Modal */}
       {showGenerateModal && (
-        <div className="modal d-block bg-dark bg-opacity-50" tabIndex="-1">
-          <div className="modal-dialog modal-dialog-centered">
-            <div className="modal-content border-0 shadow">
+        <div className="modal d-block bg-dark bg-opacity-50" tabIndex="-1" style={{ zIndex: 1050 }}>
+          <div className="modal-dialog modal-dialog-centered modal-xl">
+            <div className="modal-content border-0 shadow" style={{ minHeight: '400px' }}>
               <div className="modal-header">
-                <h5 className="modal-title fw-bold">Generate Certificate</h5>
+                <h5 className="modal-title fw-bold">{isPreviewMode ? 'Preview & Edit Document' : 'Generate Document / Certificate'}</h5>
                 <button type="button" className="btn-close" onClick={() => setShowGenerateModal(false)}></button>
               </div>
-              <form onSubmit={handleGenerate}>
+              <form onSubmit={isPreviewMode ? handleGenerate : handlePreview}>
                 <div className="modal-body py-4">
-                  <div className="mb-3">
-                    <label className="form-label small fw-semibold text-secondary">Employee</label>
-                    <select 
-                      className="form-select"
-                      required 
-                      value={generateData.employeeId}
-                      onChange={e => setGenerateData({...generateData, employeeId: e.target.value})}
-                    >
-                      <option value="">Select Employee...</option>
-                      {employees.map(emp => (
-                        <option key={emp.id} value={emp.employeeId}>
-                          {emp.firstName} {emp.lastName} ({emp.employeeId})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                  {!isPreviewMode ? (
+                    <>
+                      <div className="mb-3">
+                        <label className="form-label small fw-semibold text-secondary">Employee</label>
+                        <Select
+                          options={employees.map(emp => ({ value: emp.employeeId, label: `${emp.firstName} ${emp.lastName} (${emp.employeeId})` }))}
+                          onChange={option => setGenerateData({...generateData, employeeId: option ? option.value : ''})}
+                          placeholder="Search Employee..."
+                          isClearable
+                          menuPortalTarget={document.body}
+                          styles={{ menuPortal: base => ({ ...base, zIndex: 9999 }) }}
+                        />
+                      </div>
 
-                  <div className="mb-3">
-                    <label className="form-label small fw-semibold text-secondary">Certificate Template</label>
-                    <select 
-                      className="form-select"
-                      required 
-                      value={generateData.templateId}
-                      onChange={e => setGenerateData({...generateData, templateId: e.target.value})}
-                    >
-                      <option value="">Select Template...</option>
-                      {templates.map(t => (
-                        <option key={t.id} value={t.id}>
-                          {t.templateName}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                      <div className="mb-3">
+                        <label className="form-label small fw-semibold text-secondary">Document / Certificate Template</label>
+                        <Select
+                          options={templates.map(t => ({ value: t.id, label: t.templateName }))}
+                          onChange={option => setGenerateData({...generateData, templateId: option ? option.value : ''})}
+                          placeholder="Search Template..."
+                          isClearable
+                          menuPortalTarget={document.body}
+                          styles={{ menuPortal: base => ({ ...base, zIndex: 9999 }) }}
+                        />
+                      </div>
 
-                  <div className="mb-3">
-                    <label className="form-label small fw-semibold text-secondary">Issue Date</label>
-                    <input 
-                      className="form-control"
-                      type="date" 
-                      required 
-                      value={generateData.issuedDate}
-                      onChange={e => setGenerateData({...generateData, issuedDate: e.target.value})}
-                    />
-                  </div>
+                      <div className="mb-3">
+                        <label className="form-label small fw-semibold text-secondary">Issue Date</label>
+                        <input 
+                          className="form-control"
+                          type="date" 
+                          required 
+                          value={generateData.issuedDate}
+                          onChange={e => setGenerateData({...generateData, issuedDate: e.target.value})}
+                        />
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="mb-3">
+                        <label className="form-label small fw-semibold text-secondary">Edit Document Content</label>
+                        <div className="border rounded">
+                          <JoditEditor
+                            ref={editorRef}
+                            value={generateData.customHtml}
+                            config={{ readonly: false, height: 400, showCharsCounter: false, showWordsCounter: false, showXPathInStatusbar: false }}
+                            onBlur={newContent => setGenerateData({...generateData, customHtml: newContent})}
+                          />
+                        </div>
+                      </div>
+                      <div className="form-check mt-3">
+                        <input className="form-check-input" type="checkbox" id="sendEmail" checked={generateData.sendEmail} onChange={e => setGenerateData({...generateData, sendEmail: e.target.checked})} />
+                        <label className="form-check-label fw-medium" htmlFor="sendEmail">
+                          Send PDF directly to employee's email
+                        </label>
+                      </div>
+                    </>
+                  )}
                 </div>
-                <div className="modal-footer pt-0 border-0">
-                  <button type="button" className="btn btn-light border" onClick={() => setShowGenerateModal(false)}>Cancel</button>
-                  <button type="submit" className="btn btn-primary" disabled={generating}>
-                    {generating ? 'Generating...' : 'Generate Certificate'}
-                  </button>
+                <div className="modal-footer pt-0 border-0 d-flex justify-content-between">
+                  {isPreviewMode ? (
+                    <button type="button" className="btn btn-light border" onClick={() => setIsPreviewMode(false)}>Back</button>
+                  ) : <div></div>}
+                  
+                  <div className="d-flex gap-2">
+                    <button type="button" className="btn btn-light border" onClick={() => setShowGenerateModal(false)}>Cancel</button>
+                    {!isPreviewMode ? (
+                      <button type="submit" className="btn btn-primary" disabled={previewing}>
+                        {previewing ? 'Loading Preview...' : 'Preview & Edit'}
+                      </button>
+                    ) : (
+                      <button type="submit" className="btn btn-primary" disabled={generating}>
+                        {generating ? 'Generating...' : 'Finalize & Generate'}
+                      </button>
+                    )}
+                  </div>
                 </div>
               </form>
             </div>

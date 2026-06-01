@@ -181,9 +181,16 @@ export default function TenantsList() {
                     <td><code>{tenant.dbName}</code></td>
                     <td>{tenant.adminEmail ? tenant.adminEmail : <span className="text-muted">N/A</span>}</td>
                     <td>
-                      <span className={`badge bg-${tenant.active ? 'success' : 'danger'}`}>
-                        {tenant.active ? 'Active' : 'Disabled'}
-                      </span>
+                      <div className="d-flex flex-column gap-1" style={{ maxWidth: '80px' }}>
+                        <span className={`badge bg-${tenant.active ? 'success' : 'danger'} w-100`}>
+                          {tenant.active ? 'Active' : 'Disabled'}
+                        </span>
+                        {tenant.status && (
+                          <span className={`badge bg-${tenant.status === 'TRIAL' ? 'warning text-dark' : 'info'} w-100`}>
+                            {tenant.status}
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td>
                       {tenant.id === 1 ? (
@@ -195,6 +202,12 @@ export default function TenantsList() {
                             onClick={() => navigate(`/tenants/${tenant.id}`)}
                           >
                             Details
+                          </button>
+                          <button
+                            className="btn btn-warning btn-sm me-2 text-dark"
+                            onClick={() => handleManageModules(tenant)}
+                          >
+                            Modules
                           </button>
                           <button
                             className={`btn btn-${tenant.active ? 'danger' : 'success'} btn-sm`}

@@ -78,7 +78,7 @@ export default function EntityFormPage({
       )}
 
       {/* ── Form ── */}
-      <form onSubmit={onSubmit} noValidate>
+      <form onSubmit={onSubmit}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           {children}
         </div>

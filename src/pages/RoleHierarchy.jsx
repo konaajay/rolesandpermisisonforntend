@@ -7,12 +7,26 @@ export default function RoleHierarchy() {
   const [hierarchy, setHierarchy] = useState([]);
   const [childRoleId, setChildRoleId] = useState('');
   const [parentRoleId, setParentRoleId] = useState('');
-  const [message, setMessage] = useState(null);
-  const [error, setError] = useState(null);
+  const [toast, setToast] = useState(null);
   const [loading, setLoading] = useState(false);
 
   const { hasPermission } = usePermissions();
   const canManage = hasPermission('ROLE_UPDATE');
+
+  const showToast = (type, msg) => {
+    setToast({ type, msg });
+    setTimeout(() => setToast(null), 4000);
+  };
+
+  const fetchHierarchy = async (signal) => {
+    try {
+      const res = await api.get('/roles/hierarchy', { signal });
+      setHierarchy(res.data);
+    } catch (err) {
+      if (err.name === 'CanceledError') return;
+      console.error('Error fetching hierarchy:', err);
+    }
+  };
 
   useEffect(() => {
     const controller = new AbortController();
@@ -27,18 +41,8 @@ export default function RoleHierarchy() {
       }
     };
 
-    const fetchHierarchy = async () => {
-      try {
-        const res = await api.get('/roles/hierarchy', { signal: controller.signal });
-        setHierarchy(res.data);
-      } catch (err) {
-        if (err.name === 'CanceledError') return;
-        console.error('Error fetching hierarchy:', err);
-      }
-    };
-
     fetchRoles();
-    fetchHierarchy();
+    fetchHierarchy(controller.signal);
 
     return () => {
       controller.abort();
@@ -47,40 +51,35 @@ export default function RoleHierarchy() {
 
   const handleAdd = async (e) => {
     e.preventDefault();
-    setMessage(null);
-    setError(null);
     if (!childRoleId || !parentRoleId) {
-      setError('Please select both roles.');
+      showToast('error', 'Please select both roles.');
       return;
     }
     if (childRoleId === parentRoleId) {
-      setError('A role cannot report to itself.');
+      showToast('error', 'A role cannot report to itself.');
       return;
     }
     setLoading(true);
     try {
       await api.post(`/roles/hierarchy?roleId=${childRoleId}&reportsToRoleId=${parentRoleId}`);
-      setMessage('Hierarchy link added successfully!');
+      showToast('success', 'Hierarchy link added successfully!');
       setChildRoleId('');
       setParentRoleId('');
       fetchHierarchy();
     } catch (err) {
-      setError(err.response?.data?.message || err.response?.data || err.message);
+      showToast('error', err.response?.data?.message || err.response?.data || err.message);
     } finally {
       setLoading(false);
     }
   };
 
   const handleDelete = async (roleId, reportsToRoleId, childName, parentName) => {
-
-    setMessage(null);
-    setError(null);
     try {
       await api.delete(`/roles/hierarchy?roleId=${roleId}&reportsToRoleId=${reportsToRoleId}`);
-      setMessage('Hierarchy link removed.');
+      showToast('success', 'Hierarchy link removed.');
       fetchHierarchy();
     } catch (err) {
-      setError(err.response?.data?.message || err.response?.data || err.message);
+      showToast('error', err.response?.data?.message || err.response?.data || err.message);
     }
   };
 
@@ -118,13 +117,27 @@ export default function RoleHierarchy() {
 
   return (
     <div className="container mt-4">
+      {/* ── Floating Toast Alerts ── */}
+      {toast && (
+        <div
+          className={`position-fixed top-0 end-0 m-3 alert alert-${toast.type === 'success' ? 'success' : 'danger'} shadow-sm border-0 d-flex align-items-center gap-2`}
+          style={{ zIndex: 9999, fontSize: '13px', maxWidth: '380px', animation: 'fadeIn .2s ease' }}
+          role="alert"
+        >
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+            {toast.type === 'success'
+              ? <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"/>
+              : <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16zM7.002 11a1 1 0 1 1 2 0 1 1 0 0 1-2 0zM7.1 4.995a.905.905 0 1 1 1.8 0l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 4.995z"/>
+            }
+          </svg>
+          {toast.msg}
+        </div>
+      )}
+
       <h4 className="mb-1">Role Hierarchy</h4>
       <p className="text-muted small mb-4">
         Define which role reports to which. This controls which users appear as eligible supervisors when onboarding staff.
       </p>
-
-      {message && <div className="alert alert-success alert-dismissible py-2">{message}</div>}
-      {error && <div className="alert alert-danger alert-dismissible py-2">{error}</div>}
 
       <div className="row g-4">
         {/* Left: Add new link */}
@@ -188,11 +201,11 @@ export default function RoleHierarchy() {
               <p className="text-muted small mb-0">No hierarchy links configured yet.</p>
             ) : (
               <table className="table table-sm table-hover mb-0">
-                <thead className="table-dark">
+                <thead className="table-light text-secondary">
                   <tr>
-                    <th>Role</th>
-                    <th>Reports To</th>
-                    {canManage && <th style={{ width: 80 }}>Action</th>}
+                    <th className="fw-semibold border-0">Role</th>
+                    <th className="fw-semibold border-0">Reports To</th>
+                    {canManage && <th className="fw-semibold border-0" style={{ width: 80 }}>Action</th>}
                   </tr>
                 </thead>
                 <tbody>

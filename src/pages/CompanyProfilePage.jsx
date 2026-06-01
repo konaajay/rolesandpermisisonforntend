@@ -144,16 +144,10 @@ export default function CompanyProfilePage() {
       onBack={() => {}}
       loading={loading}
       error={error}
+      success={successMsg}
       onSubmit={handleSave}
-      submitLabel={saving ? 'Saving...' : 'Save Profile'}
+      submitLabel={saving ? 'Saving...' : (formData.companyCode ? 'Update Profile' : 'Save Profile')}
     >
-      {successMsg && (
-        <div className="alert alert-success d-flex align-items-center mb-4" style={{ fontSize: '13px', borderLeft: '4px solid #198754' }}>
-          <i className="bi bi-check-circle-fill me-2"></i>
-          {successMsg}
-        </div>
-      )}
-
       <div>
         
         {/* Company Information */}

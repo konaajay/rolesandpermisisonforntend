@@ -3,40 +3,29 @@ import { useNavigate, useParams } from 'react-router-dom';
 import api from '../services/api';
 import EntityFormPage from '../components/EntityFormPage';
 
-/* ── reusable form field ────────────────────────────────────── */
-const Field = ({ label, required, children, hint }) => (
-  <div>
-    <label className="form-label small fw-semibold text-secondary mb-1" style={{ letterSpacing: '0.1px' }}>
-      {label}{required && <span className="text-danger ms-1">*</span>}
+/* ── modern form field ──────────────────────────────────────── */
+const ModernField = ({ label, required, children, hint }) => (
+  <div className="mb-4">
+    <label className="form-label fw-bold text-secondary mb-2" style={{ fontSize: '11px', letterSpacing: '1px', textTransform: 'uppercase', color: '#6b7280' }}>
+      {label} {required && <span className="text-danger">*</span>}
     </label>
     {children}
-    {hint && <div className="form-text text-muted" style={{ fontSize: '11px' }}>{hint}</div>}
+    {hint && <div className="form-text mt-1 text-muted" style={{ fontSize: '11px' }}>{hint}</div>}
   </div>
 );
 
-const inputCls = "form-control form-control-sm border";
-const inputStyle = { height: '36px', fontSize: '13px' };
-const selectStyle = { height: '36px', fontSize: '13px' };
-
-/* ── section card ────────────────────────────────────────────── */
-const Section = ({ title, children }) => (
-  <div className="card border-0 shadow-sm rounded-3 p-4" style={{ fontSize: '13px' }}>
-    <h6 className="fw-bold text-dark mb-4 pb-2 border-bottom" style={{ fontSize: '13px', letterSpacing: '0.2px' }}>
-      {title}
-    </h6>
-    <div className="row g-3">
-      {children}
-    </div>
-  </div>
-);
+const inputCls = "form-control border-0 shadow-sm bg-light";
+const inputStyle = { height: '48px', fontSize: '14px', borderRadius: '10px' };
+const selectCls = "form-select border-0 shadow-sm bg-light";
+const selectStyle = { height: '48px', fontSize: '14px', borderRadius: '10px' };
 
 /* ── dynamic field renderer ─────────────────────────────────── */
 const DynamicField = ({ field, value, onChange }) => {
   if (field.type === 'DROPDOWN') {
     return (
-      <Field label={field.label} required={field.required}>
+      <ModernField label={field.label} required={field.required}>
         <select
-          className="form-select form-select-sm border"
+          className={selectCls}
           style={selectStyle}
           required={field.required}
           value={value}
@@ -47,13 +36,14 @@ const DynamicField = ({ field, value, onChange }) => {
             <option key={opt} value={opt}>{opt}</option>
           ))}
         </select>
-      </Field>
+      </ModernField>
     );
   }
   return (
-    <Field label={field.label} required={field.required}>
+    <ModernField label={field.label} required={field.required}>
       <input
         type={field.type === 'NUMBER' ? 'number' : 'text'}
+        {...(field.type === 'NUMBER' ? { min: "0" } : {})}
         className={inputCls}
         style={inputStyle}
         required={field.required}
@@ -61,7 +51,7 @@ const DynamicField = ({ field, value, onChange }) => {
         onChange={e => onChange(field.fieldName, e.target.value)}
         placeholder={`Enter ${field.label.toLowerCase()}`}
       />
-    </Field>
+    </ModernField>
   );
 };
 
@@ -193,136 +183,161 @@ export default function UserForm() {
   /* ── loading skeleton ────────────────────────────────────── */
   if (fetching) {
     return (
-      <EntityFormPage
-        title={isEdit ? 'Edit User' : 'Create User'}
-        subtitle="Users"
-        backRoute="/users"
-        onSubmit={() => {}}
-        submitLabel={isEdit ? 'Save Changes' : 'Create User'}
-      >
-        <div className="card border-0 shadow-sm rounded-3 p-4">
-          <div className="d-flex justify-content-center align-items-center py-5">
-            <div className="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
-            <span className="text-muted small">Loading user data...</span>
-          </div>
-        </div>
-      </EntityFormPage>
+      <div className="container py-5 text-center">
+        <div className="spinner-border text-primary" role="status"></div>
+        <p className="mt-3 text-muted">Loading...</p>
+      </div>
     );
   }
 
   /* ── form render ─────────────────────────────────────────── */
   return (
-    <EntityFormPage
-      title={isEdit ? 'Edit User' : 'Create User'}
-      subtitle="Users"
-      backRoute="/users"
-      onSubmit={handleSubmit}
-      submitLabel={isEdit ? 'Save Changes' : 'Create User'}
-      loading={loading}
-      error={error}
-      success={success}
-    >
-      {/* Personal Details */}
-      <Section title="Personal Details">
-        <div className="col-md-6">
-          <Field label="First Name" required>
-            <input type="text" className={inputCls} style={inputStyle}
-              value={firstName} onChange={e => setFirstName(e.target.value)} required
-              placeholder="Enter first name" />
-          </Field>
+    <div className="container-fluid p-4" style={{ backgroundColor: '#f8f9fa', minHeight: '100vh' }}>
+      
+      {/* ── Floating Toast Alerts ── */}
+      {(success || error) && (
+        <div className={`position-fixed top-0 end-0 m-3 alert alert-${success ? 'success' : 'danger'} shadow border-0 small d-flex align-items-center gap-2`} style={{ zIndex: 9999, maxWidth: '400px', borderRadius: '10px' }} role="alert">
+          {success ? '✓ ' : '⚠ '} {success || error}
         </div>
-        <div className="col-md-6">
-          <Field label="Last Name" required>
-            <input type="text" className={inputCls} style={inputStyle}
-              value={lastName} onChange={e => setLastName(e.target.value)} required
-              placeholder="Enter last name" />
-          </Field>
-        </div>
-        <div className="col-md-6">
-          <Field label="Email Address" required>
-            <input type="email" className={inputCls} style={inputStyle}
-              value={email} onChange={e => setEmail(e.target.value)} required
-              disabled={isEdit}
-              placeholder="user@company.com"
-              hint={isEdit ? 'Email cannot be changed after creation.' : undefined}
-            />
-            {isEdit && (
-              <div className="form-text text-muted" style={{ fontSize: '11px' }}>Email cannot be changed after creation.</div>
-            )}
-          </Field>
-        </div>
-        <div className="col-md-6">
-          <Field label="Phone Number">
-            <input type="tel" className={inputCls} style={inputStyle}
-              value={phoneNumber} onChange={e => setPhoneNumber(e.target.value)}
-              placeholder="+91 98765 43210" />
-          </Field>
-        </div>
-        <div className="col-md-6">
-          <Field label="Gender">
-            <select className="form-select form-select-sm border" style={selectStyle}
-              value={gender} onChange={e => setGender(e.target.value)}>
-              <option value="MALE">Male</option>
-              <option value="FEMALE">Female</option>
-              <option value="OTHER">Other</option>
-              <option value="PREFER_NOT_TO_SAY">Prefer not to say</option>
-            </select>
-          </Field>
-        </div>
-        {!isEdit && (
-          <div className="col-md-6">
-            <Field label="Initial Password" required>
-              <input type="password" className={inputCls} style={inputStyle}
-                value={password} onChange={e => setPassword(e.target.value)} required
-                placeholder="Minimum 8 characters" />
-            </Field>
-          </div>
-        )}
-      </Section>
-
-      {/* Role & Access */}
-      <Section title="Role &amp; Access">
-        <div className="col-md-6">
-          <Field label="Role" required>
-            <select className="form-select form-select-sm border" style={selectStyle}
-              value={selectedRoleId} onChange={e => setRoleId(e.target.value)} required>
-              <option value="">Select a role...</option>
-              {roles.map(r => (
-                <option key={r.id} value={r.id}>{r.name}</option>
-              ))}
-            </select>
-          </Field>
-        </div>
-        {supervisors.length > 0 && (
-          <div className="col-md-6">
-            <Field label="Reports To">
-              <select className="form-select form-select-sm border" style={selectStyle}
-                value={supervisorUserId} onChange={e => setSupervisor(e.target.value)}>
-                <option value="">No supervisor</option>
-                {supervisors.map(s => (
-                  <option key={s.id} value={s.id}>{s.name}</option>
-                ))}
-              </select>
-            </Field>
-          </div>
-        )}
-      </Section>
-
-      {/* Dynamic Role Fields */}
-      {dynamicFields.length > 0 && (
-        <Section title="Additional Details">
-          {dynamicFields.map(field => (
-            <div className="col-md-6" key={field.fieldName}>
-              <DynamicField
-                field={field}
-                value={profileData[field.fieldName] || ''}
-                onChange={handleDynamicChange}
-              />
-            </div>
-          ))}
-        </Section>
       )}
 
-    </EntityFormPage>
+      <div className="mx-auto" style={{ maxWidth: '900px' }}>
+        
+        {/* Header Block */}
+        <div className="mb-4 text-primary d-flex align-items-center px-4 py-3" style={{ backgroundColor: '#eef2ff', borderRadius: '12px' }}>
+          <div className="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-3" style={{ width: '40px', height: '40px' }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="20" y1="8" x2="20" y2="14"></line><line x1="23" y1="11" x2="17" y2="11"></line></svg>
+          </div>
+          <div>
+            <h6 className="mb-0 fw-bold" style={{ letterSpacing: '1px' }}>{isEdit ? 'EDIT IDENTITY' : 'CREATE NEW IDENTITY'}</h6>
+            <span style={{ fontSize: '11px', opacity: 0.8, letterSpacing: '1px' }}>INITIALIZING PERSONNEL ONBOARDING PROTOCOL</span>
+          </div>
+        </div>
+
+        <div className="card border-0 shadow-sm p-4 p-md-5" style={{ borderRadius: '16px' }}>
+          <form onSubmit={handleSubmit}>
+            <div className="row gx-5">
+              
+              <div className="col-md-6">
+                <ModernField label="First Name" required>
+                  <input type="text" className={inputCls} style={inputStyle}
+                    value={firstName} onChange={e => setFirstName(e.target.value)} required
+                    placeholder="Rahul" />
+                </ModernField>
+              </div>
+
+              <div className="col-md-6">
+                <ModernField label="Last Name" required>
+                  <input type="text" className={inputCls} style={inputStyle}
+                    value={lastName} onChange={e => setLastName(e.target.value)} required
+                    placeholder="Sharma" />
+                </ModernField>
+              </div>
+
+              <div className="col-md-6">
+                <ModernField label="Email ID" required>
+                  <input type="email" className={inputCls} style={inputStyle}
+                    value={email} onChange={e => setEmail(e.target.value)} required
+                    disabled={isEdit}
+                    placeholder="rahul@example.com"
+                  />
+                  {isEdit && (
+                    <div className="form-text text-muted" style={{ fontSize: '11px' }}>Email cannot be changed after creation.</div>
+                  )}
+                </ModernField>
+              </div>
+
+              <div className="col-md-6">
+                <ModernField label="Phone Number">
+                  <input type="tel" className={inputCls} style={inputStyle}
+                    value={phoneNumber} onChange={e => setPhoneNumber(e.target.value)}
+                    placeholder="9100000000" />
+                </ModernField>
+              </div>
+
+              <div className="col-md-6">
+                <ModernField label="Gender">
+                  <select className={selectCls} style={selectStyle}
+                    value={gender} onChange={e => setGender(e.target.value)}>
+                    <option value="MALE">Male</option>
+                    <option value="FEMALE">Female</option>
+                    <option value="OTHER">Other</option>
+                    <option value="PREFER_NOT_TO_SAY">Prefer not to say</option>
+                  </select>
+                </ModernField>
+              </div>
+
+              {!isEdit && (
+                <div className="col-md-6">
+                  <ModernField label="Password" required>
+                    <input type="password" className={inputCls} style={inputStyle}
+                      value={password} onChange={e => setPassword(e.target.value)} required
+                      placeholder="••••••••" />
+                  </ModernField>
+                </div>
+              )}
+
+              <div className="col-md-6">
+                <ModernField label="Access Role" required>
+                  <select className={selectCls} style={selectStyle}
+                    value={selectedRoleId} onChange={e => setRoleId(e.target.value)} required>
+                    <option value="">Select a role...</option>
+                    {roles.map(r => (
+                      <option key={r.id} value={r.id}>{r.name}</option>
+                    ))}
+                  </select>
+                </ModernField>
+              </div>
+
+              {supervisors.length > 0 && (
+                <div className="col-md-6">
+                  <ModernField label="Hierarchy Mapping (Superior ID)">
+                    <select className={selectCls} style={selectStyle}
+                      value={supervisorUserId} onChange={e => setSupervisor(e.target.value)}>
+                      <option value="">Select Reporting Lead</option>
+                      {supervisors.map(s => (
+                        <option key={s.id} value={s.id}>{s.name}</option>
+                      ))}
+                    </select>
+                  </ModernField>
+                </div>
+              )}
+
+              {/* Dynamic Role Fields */}
+              {dynamicFields.length > 0 && dynamicFields.map(field => (
+                <div className="col-md-6" key={field.fieldName}>
+                  <DynamicField
+                    field={field}
+                    value={profileData[field.fieldName] || ''}
+                    onChange={handleDynamicChange}
+                  />
+                </div>
+              ))}
+
+            </div>
+
+            <div className="mt-5 d-flex gap-3">
+              <button 
+                type="button" 
+                className="btn border fw-bold w-25" 
+                style={{ borderRadius: '12px', height: '54px', color: '#6b7280' }}
+                onClick={() => navigate('/users')}
+                disabled={loading}
+              >
+                CANCEL
+              </button>
+              <button 
+                type="submit" 
+                className="btn btn-primary text-white fw-bold w-75 shadow-sm" 
+                style={{ borderRadius: '12px', height: '54px', backgroundColor: '#6f61ff', borderColor: '#6f61ff', letterSpacing: '1px' }}
+                disabled={loading}
+              >
+                {loading ? 'PROCESSING...' : (isEdit ? 'SAVE CHANGES' : 'CREATE USER')}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
   );
 }

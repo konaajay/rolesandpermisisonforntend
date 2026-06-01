@@ -54,6 +54,15 @@ export default function TenantDetails() {
           <p className="text-muted small mb-0">
             Tenant Code: <strong>{tenant.code}</strong> • Admin Email: <strong>{tenant.adminEmail || 'N/A'}</strong>
           </p>
+          <hr className="my-2" />
+          <p className="text-muted small mb-0">
+            Super Admin: <strong>{tenant.superAdminName || 'N/A'}</strong> • Phone: <strong>{tenant.phone || 'N/A'}</strong>
+          </p>
+          <p className="text-muted small mt-1 mb-0">
+            Status: <span className={`badge bg-${tenant.status === 'TRIAL' ? 'warning text-dark' : 'info'}`}>{tenant.status || 'ACTIVE'}</span> • 
+            Plan: <strong>{tenant.subscriptionType || 'N/A'}</strong> • 
+            Period: <strong>{tenant.subscriptionStartDate || '-'}</strong> to <strong>{tenant.subscriptionEndDate || '-'}</strong>
+          </p>
         </div>
       </div>
 
@@ -61,9 +70,12 @@ export default function TenantDetails() {
         <div className="col-12">
           <div className="card shadow-sm border-0 h-100">
             <div className="card-body">
-              <h6 className="fw-bold text-uppercase text-muted" style={{ letterSpacing: '0.5px', fontSize: '13px' }}>
+              <h6 className="fw-bold text-uppercase text-muted mb-1" style={{ letterSpacing: '0.5px', fontSize: '13px' }}>
                 Configured Modules
               </h6>
+              <p className="text-muted" style={{ fontSize: '12px' }}>
+                Note: <strong>ADMIN</strong> and <strong>EMPLOYEE</strong> are core system modules automatically provisioned to ensure basic system functionality.
+              </p>
               <hr />
               <ul className="list-unstyled mb-0 row">
                 {modules.length > 0 ? modules.map(m => (

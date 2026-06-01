@@ -63,6 +63,8 @@ export default function Sidebar() {
               {hasPermission('USER_VIEW') && isModuleEnabled('EMPLOYEE') && <li className="nav-item"><Link className={`${link} ${isActive('/users', false)}`} to="/users">Users</Link></li>}
               {hasPermission('ROLE_CREATE') && <li className="nav-item"><Link className={`${link} ${isActive('/roles', false)}`} to="/roles">Roles</Link></li>}
               {hasPermission('PERMISSION_CREATE') && <li className="nav-item"><Link className={`${link} ${isActive('/permissions')}`} to="/permissions">Permissions</Link></li>}
+              {hasPermission('ROLE_CREATE') && <li className="nav-item"><Link className={`${link} ${isActive('/role-mapping')}`} to="/role-mapping">Role Mapping</Link></li>}
+              <li className="nav-item"><Link className={`${link} ${isActive('/role-hierarchy')}`} to="/role-hierarchy">Role Hierarchy</Link></li>
             </ul>
           </>
         )}

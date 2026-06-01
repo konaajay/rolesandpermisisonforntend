@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import api from '../services/api';
 import { useAuth } from '../auth/AuthContext';
 import { getDefaultRoute } from '../auth/routeUtils';
@@ -14,6 +14,7 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [message, setMessage] = useState(null);
   const [error, setError] = useState(null);
+  const [errorType, setErrorType] = useState('danger');
 
   useEffect(() => {
     if (isAuthenticated && user) {
@@ -26,28 +27,20 @@ export default function Login() {
     setMessage(null);
     setError(null);
 
-    // Validate that at least one tenant locator is provided
-    if (!tenantId && !tenantCode) {
-      setError('Please provide either a Tenant ID or a Tenant Code.');
+    // Validate that tenant locator is provided
+    if (!tenantCode) {
+      setError('Please provide your Workspace / Tenant Code.');
       return;
     }
 
     const payload = {
       email,
       password,
+      tenantCode
     };
 
-    if (tenantId) {
-      payload.tenantId = parseInt(tenantId);
-    }
-
-    const headers = {};
-    if (tenantCode) {
-      headers['X-Tenant'] = tenantCode;
-    }
-
     try {
-      const response = await api.post('/auth/login', payload, { headers });
+      const response = await api.post('/auth/login', payload);
       const token = response.data.token;
       const respPermissions = response.data.permissions || [];
       const respModules = response.data.modules || [];
@@ -59,7 +52,14 @@ export default function Login() {
         setError('Login failed: Token not received.');
       }
     } catch (err) {
-      setError(err.response?.data?.message || err.response?.data || err.message);
+      const errorMsg = err.response?.data?.message || err.response?.data || err.message;
+      if (typeof errorMsg === 'string' && errorMsg.startsWith('PAYMENT_REQUIRED:')) {
+        setError(errorMsg.replace('PAYMENT_REQUIRED:', '').trim());
+        setErrorType('warning');
+      } else {
+        setError(errorMsg);
+        setErrorType('danger');
+      }
     }
   };
 
@@ -80,38 +80,25 @@ export default function Login() {
           <p className="text-muted text-center mb-4">Enter your credentials below to access your tenant database</p>
 
           {message && <div className="alert alert-success border-0 shadow-sm" style={{ borderRadius: '8px' }}>{message}</div>}
-          {error && <div className="alert alert-danger border-0 shadow-sm" style={{ borderRadius: '8px' }}>{error}</div>}
+          {error && (
+            <div className={`alert alert-${errorType} border-0 shadow-sm`} style={{ borderRadius: '8px', borderLeft: errorType === 'warning' ? '4px solid #ffc107' : 'none' }}>
+              {errorType === 'warning' && <strong>Subscription Error: </strong>}
+              {error}
+            </div>
+          )}
 
           <form onSubmit={handleLogin}>
-            <div className="row">
-              <div className="col-md-6 mb-3">
-                <label className="form-label text-secondary font-weight-bold small">Tenant ID</label>
-                <input
-                  type="number"
-                  className="form-control form-control-lg border-0 shadow-sm"
-                  style={{ borderRadius: '8px', fontSize: '15px' }}
-                  value={tenantId}
-                  onChange={(e) => {
-                    setTenantId(e.target.value);
-                    if (e.target.value) setTenantCode('');
-                  }}
-                  placeholder="e.g. 1"
-                />
-              </div>
-              <div className="col-md-6 mb-3">
-                <label className="form-label text-secondary font-weight-bold small">Tenant Code (Header)</label>
-                <input
-                  type="text"
-                  className="form-control form-control-lg border-0 shadow-sm"
-                  style={{ borderRadius: '8px', fontSize: '15px' }}
-                  value={tenantCode}
-                  onChange={(e) => {
-                    setTenantCode(e.target.value);
-                    if (e.target.value) setTenantId('');
-                  }}
-                  placeholder="e.g. INF"
-                />
-              </div>
+            <div className="mb-3">
+              <label className="form-label text-secondary font-weight-bold small">Workspace / Tenant Code</label>
+              <input
+                type="text"
+                className="form-control form-control-lg border-0 shadow-sm"
+                style={{ borderRadius: '8px', fontSize: '15px' }}
+                value={tenantCode}
+                onChange={(e) => setTenantCode(e.target.value.toUpperCase())}
+                placeholder="e.g. ACME"
+              />
+              <small className="text-muted mt-1 d-block">This is the code you received during registration.</small>
             </div>
 
             <div className="mb-3">
@@ -155,6 +142,11 @@ export default function Login() {
               >
                 Use Seeded Super Admin Credentials
               </button>
+            </div>
+            
+            <div className="text-center mt-4">
+              <span className="text-muted small">Don't have an account? </span>
+              <Link to="/signup" className="small fw-bold text-decoration-none" style={{ color: '#3498db' }}>Register your company here</Link>
             </div>
           </form>
         </div>

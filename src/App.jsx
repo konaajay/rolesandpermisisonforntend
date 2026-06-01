@@ -7,6 +7,7 @@ import ProtectedRoute from './auth/ProtectedRoute';
 
 // Pages
 import Login        from './pages/Login';
+import Signup       from './pages/Signup';
 import RegisterUser from './pages/RegisterUser';
 import Unauthorized from './pages/Unauthorized';
 import Dashboard    from './pages/Dashboard';
@@ -64,6 +65,7 @@ export default function App() {
                 <Routes>
                   {/* ── Public ── */}
                   <Route path="/login"        element={<Login />} />
+                  <Route path="/signup"       element={<Signup />} />
                   <Route path="/register"     element={<RegisterUser />} />
                   <Route path="/unauthorized" element={<Unauthorized />} />
 
