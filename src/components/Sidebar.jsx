@@ -99,6 +99,15 @@ export default function Sidebar() {
             )}
           </>
         )}
+
+        {isModuleEnabled('VENDOR') && (hasPermission('VENDOR_VIEW') || hasPermission('VENDOR_CREATE')) && (
+          <>
+            <div className={section} style={sectionStyle}>Vendor Management</div>
+            <ul className={ul}>
+              <li className="nav-item"><Link className={`${link} ${isActive('/vendor-dashboard', false)}`} to="/vendor-dashboard">Vendor Portal</Link></li>
+            </ul>
+          </>
+        )}
       </div>
     </div>
   );

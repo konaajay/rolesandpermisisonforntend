@@ -1,156 +1,140 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import api from '../services/api';
 import { useAuth } from '../auth/AuthContext';
-import { getDefaultRoute } from '../auth/routeUtils';
+import { useAppStore } from '../store/useAppStore';
+import api from '../services/api';
+import Modal from '../components/Modal';
 
-export default function Login() {
-  const navigate = useNavigate();
-  const { login, isAuthenticated, user, permissions } = useAuth();
-  
-  const [tenantId, setTenantId] = useState('');
-  const [tenantCode, setTenantCode] = useState('');
+const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [message, setMessage] = useState(null);
-  const [error, setError] = useState(null);
-  const [errorType, setErrorType] = useState('danger');
+  const [tenantCode, setTenantCode] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    if (isAuthenticated && user) {
-      navigate(getDefaultRoute(user, permissions));
-    }
-  }, [isAuthenticated, user, permissions, navigate]);
+  const { login: authLogin } = useAuth();
+  const { setCurrentUser } = useAppStore();
+  const navigate = useNavigate();
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    setMessage(null);
-    setError(null);
-
-    // Validate that tenant locator is provided
-    if (!tenantCode) {
-      setError('Please provide your Workspace / Tenant Code.');
-      return;
-    }
-
-    const payload = {
-      email,
-      password,
-      tenantCode
-    };
+    setError('');
+    setLoading(true);
 
     try {
-      const response = await api.post('/auth/login', payload);
-      const token = response.data.token;
-      const respPermissions = response.data.permissions || [];
-      const respModules = response.data.modules || [];
+      const response = await api.post('/auth/login', {
+        email,
+        password,
+        tenantCode: tenantCode || null
+      });
+
+      const { token, tenantCode: respTenantCode, roleName, permissions, modules } = response.data;
       
-      if (token) {
-        login(token, respPermissions, respModules, tenantCode);
-        setMessage('Login Successful! Redirecting...');
+      // Setup both AuthContext and Zustand AppStore
+      authLogin(token, permissions, modules, respTenantCode);
+      
+      // Find if this is vendor
+      const isVendor = roleName && roleName.toUpperCase() === 'VENDOR';
+      
+      const storeRole = isVendor ? 'VENDOR' : 'STAFF';
+      setCurrentUser(email, storeRole);
+      
+      if (storeRole === 'VENDOR') {
+        navigate('/vendor-portal');
       } else {
-        setError('Login failed: Token not received.');
+        navigate('/dashboard');
       }
     } catch (err) {
-      const errorMsg = err.response?.data?.message || err.response?.data || err.message;
-      if (typeof errorMsg === 'string' && errorMsg.startsWith('PAYMENT_REQUIRED:')) {
-        setError(errorMsg.replace('PAYMENT_REQUIRED:', '').trim());
-        setErrorType('warning');
+      if (err.response?.data?.message) {
+        setError(err.response.data.message);
       } else {
-        setError(errorMsg);
-        setErrorType('danger');
+        setError('Login failed. Please check your credentials.');
       }
+    } finally {
+      setLoading(false);
     }
-  };
-
-  const fillSuperAdmin = () => {
-    setTenantId('1');
-    setTenantCode('');
-    setEmail('superadmin@system.com');
-    setPassword('superadmin');
   };
 
   return (
-    <div className="container mt-5" style={{ maxWidth: '550px' }}>
-      <div className="card border-0 shadow-lg" style={{ borderRadius: '16px', background: 'linear-gradient(145deg, #ffffff, #f1f3f6)' }}>
-        <div className="card-body p-5">
-          <h3 className="card-title text-center mb-2 font-weight-bold" style={{ color: '#2c3e50', letterSpacing: '0.5px' }}>
-            Multi-Tenant Sign In
-          </h3>
-          <p className="text-muted text-center mb-4">Enter your credentials below to access your tenant database</p>
+    <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4 font-sans text-slate-200">
+      <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-8 shadow-2xl relative overflow-hidden">
+        {/* Decorative background glow */}
+        <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-cyan-900/20 to-transparent pointer-events-none" />
 
-          {message && <div className="alert alert-success border-0 shadow-sm" style={{ borderRadius: '8px' }}>{message}</div>}
-          {error && (
-            <div className={`alert alert-${errorType} border-0 shadow-sm`} style={{ borderRadius: '8px', borderLeft: errorType === 'warning' ? '4px solid #ffc107' : 'none' }}>
-              {errorType === 'warning' && <strong>Subscription Error: </strong>}
-              {error}
-            </div>
-          )}
+        <div className="text-center mb-8 relative z-10">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-cyan-500/10 mb-4 shadow-lg shadow-cyan-500/10 border border-cyan-500/20">
+            <span className="text-3xl font-bold text-cyan-400">V</span>
+          </div>
+          <h2 className="text-2xl font-bold text-slate-50">Welcome Back</h2>
+          <p className="text-slate-400 mt-2">Sign in to your account</p>
+        </div>
 
-          <form onSubmit={handleLogin}>
-            <div className="mb-3">
-              <label className="form-label text-secondary font-weight-bold small">Workspace / Tenant Code</label>
-              <input
-                type="text"
-                className="form-control form-control-lg border-0 shadow-sm"
-                style={{ borderRadius: '8px', fontSize: '15px' }}
-                value={tenantCode}
-                onChange={(e) => setTenantCode(e.target.value.toUpperCase())}
-                placeholder="e.g. ACME"
-              />
-              <small className="text-muted mt-1 d-block">This is the code you received during registration.</small>
-            </div>
+        <Modal isOpen={!!error} onClose={() => setError('')} title="Login Failed">
+          <div className="text-center text-slate-300 p-4">
+            <p className="mb-6 text-rose-400">{error}</p>
+            <button 
+              onClick={() => setError('')}
+              className="px-6 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg transition-colors"
+            >
+              Close
+            </button>
+          </div>
+        </Modal>
 
-            <div className="mb-3">
-              <label className="form-label text-secondary font-weight-bold small">Email address</label>
-              <input
-                type="email"
-                className="form-control form-control-lg border-0 shadow-sm"
-                style={{ borderRadius: '8px', fontSize: '15px' }}
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                placeholder="name@company.com"
-              />
-            </div>
+        <form onSubmit={handleLogin} className="space-y-5 relative z-10">
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-2">Tenant Code (Workspace)</label>
+            <input
+              type="text"
+              placeholder="e.g. ACME"
+              className="w-full bg-slate-950/50 border border-slate-700 text-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-1 focus:ring-cyan-500 focus:border-cyan-500 transition-all placeholder:text-slate-600"
+              value={tenantCode}
+              onChange={(e) => setTenantCode(e.target.value)}
+            />
+            <p className="text-xs text-slate-500 mt-2">Leave empty if Platform Admin or logging into default</p>
+          </div>
 
-            <div className="mb-4">
-              <label className="form-label text-secondary font-weight-bold small">Password</label>
-              <input
-                type="password"
-                className="form-control form-control-lg border-0 shadow-sm"
-                style={{ borderRadius: '8px', fontSize: '15px' }}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                placeholder="••••••••"
-              />
-            </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-2">Email Address</label>
+            <input
+              type="email"
+              required
+              placeholder="name@company.com"
+              className="w-full bg-slate-950/50 border border-slate-700 text-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-1 focus:ring-cyan-500 focus:border-cyan-500 transition-all placeholder:text-slate-600"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+          </div>
 
-            <div className="d-grid gap-2">
-              <button 
-                type="submit" 
-                className="btn btn-primary btn-lg shadow-sm"
-                style={{ borderRadius: '8px', background: 'linear-gradient(135deg, #3498db, #2980b9)', border: 'none' }}
-              >
-                Sign In
-              </button>
-              <button
-                type="button"
-                className="btn btn-outline-secondary btn-sm mt-2 border-0"
-                onClick={fillSuperAdmin}
-              >
-                Use Seeded Super Admin Credentials
-              </button>
-            </div>
-            
-            <div className="text-center mt-4">
-              <span className="text-muted small">Don't have an account? </span>
-              <Link to="/signup" className="small fw-bold text-decoration-none" style={{ color: '#3498db' }}>Register your company here</Link>
-            </div>
-          </form>
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-2">Password</label>
+            <input
+              type="password"
+              required
+              placeholder="••••••••"
+              className="w-full bg-slate-950/50 border border-slate-700 text-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-1 focus:ring-cyan-500 focus:border-cyan-500 transition-all placeholder:text-slate-600"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-gradient-to-r from-cyan-500 to-emerald-500 hover:from-cyan-400 hover:to-emerald-400 text-white font-semibold py-3 px-4 rounded-xl shadow-lg shadow-cyan-500/20 transition-all active:scale-95 flex items-center justify-center mt-2 disabled:opacity-70 disabled:cursor-not-allowed"
+          >
+            {loading ? 'Signing in...' : 'Sign In'}
+          </button>
+        </form>
+        
+        <div className="text-center mt-8 relative z-10">
+          <span className="text-slate-400 text-sm">
+            Don't have an account? <Link to="/signup" className="text-cyan-400 hover:text-cyan-300 font-medium transition-colors">Sign Up</Link>
+          </span>
         </div>
       </div>
     </div>
   );
-}
+};
+
+export default Login;

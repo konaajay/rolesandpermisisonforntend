@@ -1,5 +1,126 @@
-body {
-  font-family: 'Outfit', sans-serif;
-  background-color: #f8f9fa;
-  min-height: 100vh;
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --bg-color: #020617; /* slate-950 */
+    --surface-color: #0f172a; /* slate-900 */
+    --text-primary: #f8fafc; /* slate-50 */
+    --text-secondary: #94a3b8; /* slate-400 */
+  }
+
+  body {
+    background-color: var(--bg-color);
+    color: var(--text-primary);
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+
+  /* Responsive Typography & Fluid Media */
+  html {
+    font-size: 14px;
+  }
+  
+  @media (min-width: 640px) {
+    html {
+      font-size: 15px;
+    }
+  }
+  
+  @media (min-width: 1024px) {
+    html {
+      font-size: 16px;
+    }
+  }
+
+  img, picture, video, canvas, svg {
+    display: block;
+    max-width: 100%;
+    height: auto;
+  }
+
+  .light {
+    --bg-color: #f8fafc;
+    --surface-color: #ffffff;
+    --text-primary: #0f172a;
+    --text-secondary: #475569;
+    
+    --color-slate-950: #f8fafc;
+    --color-slate-900: #ffffff;
+    --color-slate-800: #f1f5f9;
+    --color-slate-700: #e2e8f0;
+    --color-slate-600: #cbd5e1;
+    --color-slate-500: #94a3b8;
+    --color-slate-400: #64748b;
+    --color-slate-300: #475569;
+    --color-slate-200: #334155;
+    --color-slate-100: #1e293b;
+    --color-slate-50:  #0f172a;
+  }
+}
+
+@layer components {
+  .glass-panel {
+    @apply bg-slate-900/60 backdrop-blur-xl border border-slate-700/50 rounded-2xl shadow-2xl;
+  }
+  
+  .glass-card {
+    @apply bg-slate-800/40 backdrop-blur-md border border-slate-700/50 rounded-xl shadow-lg hover:bg-slate-800/60 transition-colors duration-300;
+  }
+  
+  .btn-primary {
+    @apply px-4 py-2 bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-400 hover:to-cyan-400 text-white font-medium rounded-lg shadow-lg shadow-emerald-500/20 transition-all duration-300 active:scale-95;
+  }
+
+  .btn-secondary {
+    @apply px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600 font-medium rounded-lg transition-all duration-300 active:scale-95;
+  }
+
+  .btn-icon {
+    @apply p-2 rounded-lg text-slate-400 hover:text-slate-100 hover:bg-slate-700/50 transition-colors duration-200;
+  }
+
+  .input-field {
+    @apply w-full bg-slate-950/50 border border-slate-700 rounded-lg px-4 py-2 text-slate-200 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all placeholder:text-slate-500;
+  }
+  
+  .badge-success {
+    @apply px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-500 border border-emerald-500/20;
+  }
+  
+  .badge-warning {
+    @apply px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-500/10 text-amber-500 border border-amber-500/20;
+  }
+  
+  .badge-error {
+    @apply px-2.5 py-0.5 rounded-full text-xs font-medium bg-rose-500/10 text-rose-500 border border-rose-500/20;
+  }
+  
+  .badge-info {
+    @apply px-2.5 py-0.5 rounded-full text-xs font-medium bg-cyan-500/10 text-cyan-500 border border-cyan-500/20;
+  }
+  
+  .nav-item {
+    @apply flex items-center space-x-3 px-4 py-3 rounded-xl text-slate-400 hover:text-slate-50 hover:bg-slate-800/50 transition-all duration-200 font-medium cursor-pointer;
+  }
+  
+  .nav-item.active {
+    @apply bg-gradient-to-r from-emerald-500/10 to-cyan-500/10 text-cyan-500 border border-cyan-500/20;
+  }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #475569;
 }

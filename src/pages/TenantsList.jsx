@@ -16,8 +16,7 @@ export default function TenantsList() {
   const [moduleDetails, setModuleDetails] = useState({});
 
   const ALL_MODULES = [
-    'LEAD', 'EMPLOYEE', 'COURSE', 'AFFILIATE', 'MARKETING', 
-    'CRM', 'HRMS', 'PAYROLL', 'ATTENDANCE', 'LMS', 'ADMIN'
+    'CRM', 'HRMS', 'VENDOR'
   ];
 
   const fetchTenants = async () => {
