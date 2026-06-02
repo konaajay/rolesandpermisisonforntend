@@ -6,7 +6,7 @@ import { useAppStore } from '../store/useAppStore';
 const navItems = [
   { path: '/vendor-dashboard/analytics', label: 'Dashboard', icon: LayoutDashboard },
   { path: '/vendor-dashboard/vendors', label: 'Vendors', icon: Users },
-  { path: '/vendor-dashboard/procurement', label: 'Procurement', icon: ShoppingCart },
+  { path: '/vendor-dashboard/assets', label: 'Assets', icon: ShoppingCart },
   { path: '/vendor-dashboard/contracts', label: 'Contracts', icon: FileText },
   { path: '/vendor-dashboard/invoices', label: 'Invoices', icon: CreditCard },
   { path: '/vendor-dashboard/performance', label: 'Performance', icon: TrendingUp },

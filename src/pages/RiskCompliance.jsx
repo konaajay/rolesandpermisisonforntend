@@ -138,7 +138,7 @@ const RiskCompliance = () => {
                   <span className="text-sm text-slate-400">{audit.auditDate}</span>
                   <span className={`text-xs font-semibold px-2.5 py-1 rounded-full border ${s}`}>{audit.status}</span>
                   {/* Actions (visible on hover) */}
-                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="flex gap-1">
                     <button onClick={(e) => { e.stopPropagation(); openView(audit); }} className="btn-icon" title="View Report"><Eye size={14} /></button>
                     <button onClick={(e) => { e.stopPropagation(); openEdit(audit); }} className="btn-icon" title="Edit"><Edit2 size={14} /></button>
                     <button onClick={(e) => { e.stopPropagation(); handleDelete(audit.id); }} className="btn-icon hover:text-rose-400" title="Delete"><Trash2 size={14} /></button>

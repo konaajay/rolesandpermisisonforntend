@@ -123,7 +123,7 @@ const Contracts = () => {
                   </div>
                 </div>
                 {/* Hover actions */}
-                <div className="flex gap-2 justify-end mt-3 pt-3 border-t border-slate-700/40 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="flex gap-2 justify-end mt-3 pt-3 border-t border-slate-700/40">
                   <button onClick={(e) => { e.stopPropagation(); openView(c); }} className="btn-icon text-xs gap-1 flex items-center px-2 py-1" title="View">
                     <Eye size={13} /> View
                   </button>

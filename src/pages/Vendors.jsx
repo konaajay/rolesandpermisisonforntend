@@ -364,7 +364,7 @@ const Vendors = () => {
                     </div>
                   </td>
                   <td className="p-4 text-right">
-                    <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="flex justify-end gap-2">
                       <button onClick={() => openViewModal(vendor)} className="btn-icon" title="View details"><Eye size={16} /></button>
                       <button onClick={() => openEditModal(vendor)} className="btn-icon" title="Edit"><Edit2 size={16} /></button>
                       <button onClick={() => handleDeleteVendor(vendor.id)} className="btn-icon hover:text-rose-400" title="Delete"><Trash2 size={16} /></button>

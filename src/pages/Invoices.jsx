@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import api from '../services/api';
 import { motion } from 'framer-motion';
-import { FileText, CheckCircle2, DollarSign, Upload, FileUp, Eye, Edit2, Trash2, Check } from 'lucide-react';
+import { FileText, CheckCircle2, DollarSign, Upload, FileUp, Eye, Edit2, Trash2, Check, Download } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
 import Modal from '../components/Modal';
 
@@ -85,7 +85,16 @@ const Invoices = () => {
         status: 'Pending',
         notes: newInvoice.notes || '',
       };
-      await api.post('/api/vendor-invoices', payload);
+      const res = await api.post('/api/vendor-invoices', payload);
+      
+      if (res.data.success && selectedFile) {
+        const formData = new FormData();
+        formData.append('file', selectedFile);
+        await api.post(`/api/vendor-invoices/${res.data.data.id}/upload-receipt`, formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
+      }
+
       fetchInvoices();
       setNewInvoice({ vendorId: '', amount: '', poRef: '', dueDate: '', notes: '' });
       setSelectedFile(null);
@@ -176,7 +185,7 @@ const Invoices = () => {
                       <span className={`text-xs font-semibold px-2.5 py-1 rounded-full border ${s.badge}`}>{inv.status}</span>
                     </td>
                     <td className="p-4 text-right">
-                      <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="flex justify-end gap-2">
                         {inv.receiptUrl && (
                           <a href={`http://localhost:8080/api/vendor-invoices/${inv.id}/receipt`} target="_blank" rel="noreferrer" className="btn-icon text-cyan-400 hover:text-cyan-300 hover:bg-cyan-400/10" title="Download Receipt">
                             <Download size={16} />

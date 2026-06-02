@@ -108,7 +108,7 @@ const AppContent = () => {
           <Route index element={<Navigate to="/vendor-dashboard/analytics" replace />} />
           <Route path="analytics" element={<VendorAnalyticsDashboard />} />
           <Route path="vendors" element={<Vendors />} />
-          <Route path="procurement" element={<Procurement />} />
+          <Route path="assets" element={<Procurement />} />
           <Route path="contracts" element={<Contracts />} />
           <Route path="invoices" element={<Invoices />} />
           <Route path="performance" element={<Performance />} />

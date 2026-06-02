@@ -8,7 +8,7 @@ import Modal from '../components/Modal';
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [tenantCode, setTenantCode] = useState('');
+
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -24,8 +24,7 @@ const Login = () => {
     try {
       const response = await api.post('/auth/login', {
         email,
-        password,
-        tenantCode: tenantCode || null
+        password
       });
 
       const { token, tenantCode: respTenantCode, roleName, permissions, modules } = response.data;
@@ -82,17 +81,7 @@ const Login = () => {
         </Modal>
 
         <form onSubmit={handleLogin} className="space-y-5 relative z-10">
-          <div>
-            <label className="block text-sm font-medium text-slate-300 mb-2">Tenant Code (Workspace)</label>
-            <input
-              type="text"
-              placeholder="e.g. ACME"
-              className="w-full bg-slate-950/50 border border-slate-700 text-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-1 focus:ring-cyan-500 focus:border-cyan-500 transition-all placeholder:text-slate-600"
-              value={tenantCode}
-              onChange={(e) => setTenantCode(e.target.value)}
-            />
-            <p className="text-xs text-slate-500 mt-2">Leave empty if Platform Admin or logging into default</p>
-          </div>
+
 
           <div>
             <label className="block text-sm font-medium text-slate-300 mb-2">Email Address</label>
