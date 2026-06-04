@@ -1,0 +1,329 @@
+/* Login Page Styling */
+.login-page {
+    min-height: 100vh;
+    background: #0f172a; /* Deep navy */
+    font-family: 'Inter', 'Outfit', system-ui, sans-serif;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Background elements */
+.login-page::before {
+    content: '';
+    position: absolute;
+    width: 600px;
+    height: 600px;
+    background: radial-gradient(circle, rgba(99, 102, 241, 0.15) 0%, transparent 70%);
+    top: -100px;
+    left: -100px;
+    z-index: 1;
+}
+
+.login-page::after {
+    content: '';
+    position: absolute;
+    width: 500px;
+    height: 500px;
+    background: radial-gradient(circle, rgba(139, 92, 246, 0.1) 0%, transparent 70%);
+    bottom: -100px;
+    right: -100px;
+    z-index: 1;
+}
+
+.login-container {
+    width: 100%;
+    max-width: 1200px;
+    display: flex;
+    gap: 60px;
+    position: relative;
+    z-index: 10;
+    align-items: center;
+}
+
+/* Left Content */
+.login-left {
+    flex: 1.2;
+    display: flex;
+    flex-direction: column;
+}
+
+.brand-section {
+    text-align: center;
+    margin-bottom: 48px;
+}
+
+.brand-icon-circle {
+    width: 80px;
+    height: 80px;
+    background: #1e293b;
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 24px;
+    color: #3b82f6;
+    box-shadow: 0 0 30px rgba(59, 130, 246, 0.2);
+}
+
+.brand-title {
+    font-size: 42px;
+    font-weight: 800;
+    letter-spacing: -1px;
+    margin: 0 0 12px;
+    background: linear-gradient(to right, #fff, #94a3b8);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.brand-subtitle {
+    font-size: 18px;
+    color: #94a3b8;
+    line-height: 1.6;
+    max-width: 440px;
+    margin: 0 auto;
+}
+
+/* Role Selector Cards */
+.role-selectors {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    max-width: 440px;
+    margin: 0 auto;
+    width: 100%;
+}
+
+.role-card {
+    background: rgba(30, 41, 59, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.role-card:hover {
+    background: rgba(30, 41, 59, 1);
+    border-color: rgba(99, 102, 241, 0.3);
+    transform: translateX(8px);
+}
+
+.role-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+}
+
+.role-icon.student { background: rgba(168, 85, 247, 0.15); color: #a855f7; }
+.role-icon.admin { background: rgba(59, 130, 246, 0.15); color: #3b82f6; }
+.role-icon.librarian { background: rgba(16, 185, 129, 0.15); color: #10b981; }
+
+.role-info {
+    flex: 1;
+}
+
+.role-name {
+    font-weight: 700;
+    font-size: 15px;
+    color: #f1f5f9;
+    margin: 0 0 2px;
+}
+
+.role-desc {
+    font-size: 12px;
+    color: #64748b;
+    margin: 0;
+}
+
+/* Right Side - Form Card */
+.login-right {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+}
+
+.login-form-card {
+    background: #fff;
+    width: 100%;
+    max-width: 420px;
+    padding: 48px;
+    border-radius: 24px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    color: #1e293b;
+    animation: slideUp 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes slideUp {
+    from { opacity: 0; transform: translateY(30px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.form-header {
+    margin-bottom: 32px;
+}
+
+.form-header h2 {
+    font-size: 24px;
+    font-weight: 800;
+    margin: 0 0 8px;
+    color: #0f172a;
+}
+
+.form-header p {
+    font-size: 14px;
+    color: #64748b;
+    margin: 0;
+    font-weight: 500;
+}
+
+/* Inputs */
+.form-group {
+    margin-bottom: 24px;
+}
+
+.field-label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: #475569;
+    margin-bottom: 8px;
+}
+
+.input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.form-input {
+    width: 100%;
+    padding: 12px 16px;
+    background: #f8fafc;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #1e293b;
+    transition: all 0.2s;
+    outline: none;
+}
+
+.form-input:focus {
+    background: #fff;
+    border-color: #6366f1;
+    box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+}
+
+.password-toggle {
+    position: absolute;
+    right: 14px;
+    color: #94a3b8;
+    cursor: pointer;
+    background: none;
+    border: none;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Submit Button */
+.submit-btn {
+    width: 100%;
+    padding: 14px;
+    background: #4f46e5;
+    color: #fff;
+    border: none;
+    border-radius: 14px;
+    font-weight: 700;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    cursor: pointer;
+    transition: all 0.3s;
+    box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.3);
+    margin-top: 8px;
+}
+
+.submit-btn:hover:not(:disabled) {
+    background: #4338ca;
+    transform: translateY(-2px);
+    box-shadow: 0 15px 25px -5px rgba(79, 70, 229, 0.4);
+}
+
+.submit-btn:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+.submit-btn:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+/* Footer */
+.trouble-text {
+    text-align: center;
+    margin-top: 24px;
+    font-size: 13px;
+    color: #64748b;
+    font-weight: 500;
+}
+
+.trouble-text a {
+    color: #4f46e5;
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.page-footer {
+    position: absolute;
+    bottom: 30px;
+    left: 0;
+    width: 100%;
+    text-align: center;
+    color: #475569;
+    font-size: 12px;
+    font-weight: 500;
+    z-index: 5;
+}
+
+/* Mobile Responsive */
+@media (max-width: 992px) {
+    .login-container {
+        flex-direction: column;
+        gap: 40px;
+        padding-bottom: 80px;
+    }
+    
+    .login-left {
+        text-align: center;
+    }
+    
+    .brand-subtitle {
+        max-width: 100%;
+    }
+    
+    .role-selectors {
+        display: none; /* Hide on mobile to simplify */
+    }
+    
+    .login-form-card {
+        padding: 32px;
+    }
+}

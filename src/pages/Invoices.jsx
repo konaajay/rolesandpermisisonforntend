@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { FileText, CheckCircle2, DollarSign, Upload, FileUp, Eye, Edit2, Trash2, Check, Download } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
 import Modal from '../components/Modal';
+import { useNavigate } from 'react-router-dom';
 
 
 
@@ -19,6 +20,7 @@ const Invoices = () => {
   const { searchQuery } = useAppStore();
   const [invoices, setInvoices] = useState([]);
   const [vendors, setVendors] = useState([]);
+  const [requirements, setRequirements] = useState([]);
   const [isUploadOpen, setIsUploadOpen]   = useState(false);
   const [isViewOpen,   setIsViewOpen]     = useState(false);
   const [isEditOpen,   setIsEditOpen]     = useState(false);
@@ -26,7 +28,7 @@ const Invoices = () => {
   const fileInputRef = useRef(null);
   const [selected,     setSelected]       = useState(null);
   const [editInvoice,  setEditInvoice]    = useState(null);
-  const [newInvoice,   setNewInvoice]     = useState({ vendorId: '', amount: '', poRef: '', dueDate: '', notes: '' });
+  const [newInvoice,   setNewInvoice]     = useState({ vendorId: '', amount: '', poRef: '', dueDate: '', notes: '', requirementId: '' });
 
   const fetchInvoices = async () => {
     try {
@@ -42,9 +44,17 @@ const Invoices = () => {
     } catch (error) { console.error("Error fetching vendors", error); }
   };
 
+  const fetchRequirements = async () => {
+    try {
+      const res = await api.get('/api/requirements');
+      if (res.data) setRequirements(res.data);
+    } catch (error) { console.error("Error fetching requirements", error); }
+  };
+
   useEffect(() => {
     fetchInvoices();
     fetchVendors();
+    fetchRequirements();
   }, []);
 
   /* ── helpers ── */
@@ -66,9 +76,32 @@ const Invoices = () => {
     try {
       const invToUpdate = invoices.find(i => i.id === id);
       if (invToUpdate) {
-        await api.put(`/api/vendor-invoices/${id}`, { ...invToUpdate, status: newStatus });
+        let amountPaid = invToUpdate.amountPaid || 0;
+        let amountPending = invToUpdate.amountPending !== undefined ? invToUpdate.amountPending : invToUpdate.amountValue;
+
+        if (newStatus === 'Partially Paid') {
+          const amt = window.prompt(`Total Amount is ${invToUpdate.amount}. Enter total Amount Paid so far:`, amountPaid);
+          if (amt === null) return;
+          const parsed = parseFloat(amt);
+          if (isNaN(parsed) || parsed < 0) {
+            alert('Invalid amount entered.');
+            return;
+          }
+          amountPaid = parsed;
+          amountPending = invToUpdate.amountValue - amountPaid;
+        } else if (newStatus === 'Paid') {
+          amountPaid = invToUpdate.amountValue;
+          amountPending = 0;
+        }
+
+        await api.put(`/api/vendor-invoices/${id}`, { 
+          ...invToUpdate, 
+          status: newStatus,
+          amountPaid: amountPaid,
+          amountPending: amountPending
+        });
         fetchInvoices();
-        setSelected(prev => prev ? { ...prev, status: newStatus } : prev);
+        setSelected(prev => prev ? { ...prev, status: newStatus, amountPaid, amountPending } : prev);
       }
     } catch (e) { console.error("Error updating invoice status", e); }
   };
@@ -78,6 +111,7 @@ const Invoices = () => {
     try {
       const payload = {
         vendorId: newInvoice.vendorId,
+        requirementId: newInvoice.requirementId || null,
         amount: newInvoice.amount,
         date: new Date().toISOString().split('T')[0],
         dueDate: newInvoice.dueDate || 'TBD',
@@ -96,7 +130,7 @@ const Invoices = () => {
       }
 
       fetchInvoices();
-      setNewInvoice({ vendorId: '', amount: '', poRef: '', dueDate: '', notes: '' });
+      setNewInvoice({ vendorId: '', amount: '', poRef: '', dueDate: '', notes: '', requirementId: '' });
       setSelectedFile(null);
       setIsUploadOpen(false);
     } catch (e) { console.error("Error creating invoice", e); }
@@ -112,6 +146,32 @@ const Invoices = () => {
     } catch (e) { console.error("Error editing invoice", e); }
   };
 
+  const handleDownloadReceipt = async (id, e) => {
+    if (e) e.preventDefault();
+    try {
+      const response = await api.get(`/api/vendor-invoices/${id}/receipt`, {
+        responseType: 'blob'
+      });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      
+      let filename = `receipt-${id}.pdf`;
+      const contentDisposition = response.headers['content-disposition'];
+      if (contentDisposition && contentDisposition.includes('filename=')) {
+          filename = contentDisposition.split('filename=')[1].replace(/['"]/g, '');
+      }
+      
+      link.setAttribute('download', filename);
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode.removeChild(link);
+    } catch (error) {
+      console.error("Error downloading receipt", error);
+      alert("Failed to download receipt. Please check permissions.");
+    }
+  };
+
   const filteredInvoices = invoices.filter(inv => {
     const searchLower = (searchQuery || '').toLowerCase();
     if (!searchLower) return true;
@@ -120,11 +180,14 @@ const Invoices = () => {
            (inv.status || '').toLowerCase().includes(searchLower);
   });
 
-  const totalPaid = invoices.filter(i => i.status === 'Paid').reduce((sum, i) => sum + (i.amountValue || 0), 0);
-  const totalPending = invoices.filter(i => i.status === 'Pending').reduce((sum, i) => sum + (i.amountValue || 0), 0);
-  const totalApproved = invoices.filter(i => i.status === 'Approved').reduce((sum, i) => sum + (i.amountValue || 0), 0);
+  const totalPaid = invoices.reduce((sum, i) => sum + (i.amountPaid || (i.status === 'Paid' ? i.amountValue : 0)), 0);
+  const totalPendingStr = invoices.reduce((sum, i) => sum + (i.amountPending !== undefined ? i.amountPending : (i.status === 'Paid' ? 0 : i.amountValue)), 0);
+  const totalPending = totalPendingStr;
+  const totalApproved = invoices.filter(i => i.status === 'Approved').reduce((sum, i) => sum + (i.amountPending !== undefined ? i.amountPending : i.amountValue), 0);
 
   const formatCurrency = (amount) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(amount);
+
+  const linkedRequirementIds = new Set(invoices.filter(i => i.requirementId).map(i => i.requirementId.toString()));
 
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="space-y-6">
@@ -178,8 +241,15 @@ const Invoices = () => {
                 return (
                   <tr key={inv.id} className="hover:bg-slate-800/30 transition-colors group">
                     <td className="p-4 font-mono text-sm text-cyan-400">{inv.invoiceNumber}</td>
-                    <td className="p-4 text-sm text-slate-200">{inv.vendorName}</td>
-                    <td className="p-4 text-sm font-semibold text-slate-50">{inv.amount}</td>
+                    <td className="p-4 text-sm text-slate-200">
+                      <div>{inv.vendorName}</div>
+                      {inv.requirementId && <div className="text-xs text-slate-500 mt-1">REQ-{inv.requirementId}</div>}
+                    </td>
+                    <td className="p-4 text-sm font-semibold text-slate-50">
+                      <div>{inv.amount}</div>
+                      <div className="text-xs font-normal text-emerald-400 mt-0.5">Paid: {formatCurrency(inv.amountPaid || 0)}</div>
+                      <div className="text-xs font-normal text-amber-400 mt-0.5">Pending: {formatCurrency(inv.amountPending !== undefined ? inv.amountPending : inv.amountValue)}</div>
+                    </td>
                     <td className="p-4 text-sm text-slate-400 hidden sm:table-cell">{inv.dueDate}</td>
                     <td className="p-4">
                       <span className={`text-xs font-semibold px-2.5 py-1 rounded-full border ${s.badge}`}>{inv.status}</span>
@@ -187,10 +257,13 @@ const Invoices = () => {
                     <td className="p-4 text-right">
                       <div className="flex justify-end gap-2">
                         {inv.receiptUrl && (
-                          <a href={`http://localhost:8080/api/vendor-invoices/${inv.id}/receipt`} target="_blank" rel="noreferrer" className="btn-icon text-cyan-400 hover:text-cyan-300 hover:bg-cyan-400/10" title="Download Receipt">
+                          <button onClick={(e) => handleDownloadReceipt(inv.id, e)} className="btn-icon text-cyan-400 hover:text-cyan-300 hover:bg-cyan-400/10" title="Download Uploaded Receipt">
                             <Download size={16} />
-                          </a>
+                          </button>
                         )}
+                        <button onClick={() => window.open(`/vendor-dashboard/invoices/${inv.id}/receipt`, '_blank')} className="btn-icon text-indigo-400 hover:text-indigo-300 hover:bg-indigo-400/10" title="Generate Payment Receipt">
+                          <FileText size={16} />
+                        </button>
                         <button onClick={() => openView(inv)} className="btn-icon" title="View details"><Eye size={16} /></button>
                         <button onClick={() => openEdit(inv)} className="btn-icon" title="Edit"><Edit2 size={16} /></button>
                         <button onClick={() => handleDelete(inv.id)} className="btn-icon text-rose-400 hover:text-rose-300 hover:bg-rose-500/10" title="Delete"><Trash2 size={16} /></button>
@@ -224,9 +297,17 @@ const Invoices = () => {
 
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div><p className="text-slate-500 text-xs mb-0.5">Amount</p><p className="text-slate-50 font-bold text-lg">{selected.amount}</p></div>
-                <div><p className="text-slate-500 text-xs mb-0.5">PO Reference</p><p className="text-slate-200 font-mono">{selected.poRef}</p></div>
+                <div><p className="text-slate-500 text-xs mb-0.5">PO Reference</p><p className="text-slate-200 font-mono">{selected.poRef || '—'}</p></div>
                 <div><p className="text-slate-500 text-xs mb-0.5">Invoice Date</p><p className="text-slate-200">{selected.date}</p></div>
                 <div><p className="text-slate-500 text-xs mb-0.5">Due Date</p><p className="text-slate-200">{selected.dueDate}</p></div>
+                <div><p className="text-slate-500 text-xs mb-0.5">Amount Paid</p><p className="text-emerald-400 font-semibold">{formatCurrency(selected.amountPaid || 0)}</p></div>
+                <div><p className="text-slate-500 text-xs mb-0.5">Amount Pending</p><p className="text-amber-400 font-semibold">{formatCurrency(selected.amountPending !== undefined ? selected.amountPending : selected.amountValue)}</p></div>
+                {selected.requirementId && (
+                  <div className="col-span-2">
+                    <p className="text-slate-500 text-xs mb-0.5">Linked Requirement</p>
+                    <p className="text-cyan-400 font-mono bg-cyan-400/10 inline-block px-2 py-0.5 rounded border border-cyan-400/20">REQ-{selected.requirementId}</p>
+                  </div>
+                )}
               </div>
 
               {selected.notes && (
@@ -238,20 +319,26 @@ const Invoices = () => {
 
               {selected.receiptUrl && (
                 <div className="mt-4">
-                  <a href={`http://localhost:8080/api/vendor-invoices/${selected.id}/receipt`} target="_blank" rel="noreferrer" className="flex items-center justify-center gap-2 w-full py-2 bg-emerald-500/10 text-emerald-400 rounded-lg border border-emerald-500/30 hover:bg-emerald-500/20 transition-colors">
+                  <button onClick={(e) => handleDownloadReceipt(selected.id, e)} className="flex items-center justify-center gap-2 w-full py-2 bg-emerald-500/10 text-emerald-400 rounded-lg border border-emerald-500/30 hover:bg-emerald-500/20 transition-colors">
                     <Download size={16} /> Download Payment Receipt
-                  </a>
+                  </button>
                 </div>
               )}
 
               {/* Quick status actions */}
               <div className="flex flex-wrap gap-2">
-                {['Pending', 'Approved', 'Partially Paid', 'Paid', 'Rejected'].filter(st => st !== selected.status).map(st => (
-                  <button key={st} onClick={() => handleStatusChange(selected.id, st)}
-                    className="text-xs px-3 py-1.5 rounded-lg border border-slate-700 text-slate-300 hover:bg-slate-800 transition-colors">
-                    Mark as {st}
-                  </button>
-                ))}
+                {['Pending', 'Approved', 'Partially Paid', 'Paid', 'Rejected']
+                  .filter(st => st !== selected.status || st === 'Partially Paid')
+                  .map(st => {
+                    const isSame = st === selected.status;
+                    const btnLabel = isSame ? 'Update Partial Payment' : `Mark as ${st}`;
+                    return (
+                      <button key={st + (isSame ? '-update' : '')} onClick={() => handleStatusChange(selected.id, st)}
+                        className="text-xs px-3 py-1.5 rounded-lg border border-slate-700 text-slate-300 hover:bg-slate-800 transition-colors">
+                        {btnLabel}
+                      </button>
+                    );
+                  })}
               </div>
 
               <div className="pt-2 flex justify-between items-center border-t border-slate-700/50">
@@ -350,11 +437,27 @@ const Invoices = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="col-span-2">
               <label className="block text-sm font-medium text-slate-300 mb-1">Select Vendor *</label>
-              <select className="input-field" required value={newInvoice.vendorId} onChange={(e) => setNewInvoice({ ...newInvoice, vendorId: e.target.value })}>
+              <select className="input-field" required value={newInvoice.vendorId} onChange={(e) => setNewInvoice({ ...newInvoice, vendorId: e.target.value, requirementId: '' })}>
                 <option value="">Select Vendor...</option>
                 {vendors.map(v => <option key={v.id} value={v.id}>{v.vendorName}</option>)}
               </select>
             </div>
+            {newInvoice.vendorId && (
+              <div className="col-span-2">
+                <label className="block text-sm font-medium text-slate-300 mb-1">Link Requirement (Optional)</label>
+                <select className="input-field" value={newInvoice.requirementId} onChange={(e) => setNewInvoice({ ...newInvoice, requirementId: e.target.value })}>
+                  <option value="">No specific requirement</option>
+                  {requirements
+                    .filter(req => req.vendor?.id?.toString() === newInvoice.vendorId.toString())
+                    .filter(req => !linkedRequirementIds.has(req.id.toString()))
+                    .map(req => (
+                      <option key={req.id} value={req.id}>
+                        REQ-{req.id} - {req.description?.substring(0, 40) || req.requirementType}
+                      </option>
+                    ))}
+                </select>
+              </div>
+            )}
             <div>
               <label className="block text-sm font-medium text-slate-300 mb-1">Invoice Amount *</label>
               <input type="number" step="0.01" className="input-field" placeholder="0.00" required value={newInvoice.amount} onChange={(e) => setNewInvoice({ ...newInvoice, amount: e.target.value })} />

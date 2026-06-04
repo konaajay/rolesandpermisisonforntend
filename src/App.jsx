@@ -53,19 +53,24 @@ import CertificatesList from './pages/CertificatesList';
 import PublicVerificationPage from './pages/PublicVerificationPage';
 
 
-// vendor module 
 import { useAppStore } from './store/useAppStore';
 import MainLayout from './layouts/MainLayout';
 import VendorAnalyticsDashboard from './pages/VendorAnalyticsDashboard';
 import Vendors from './pages/Vendors';
-import Procurement from './pages/Procurement';
+import Requirements from './pages/Requirements';
 import Contracts from './pages/Contracts';
 import Invoices from './pages/Invoices';
 import Performance from './pages/Performance';
 import RiskCompliance from './pages/RiskCompliance';
-
-
+import Billing from './pages/Billing';
+import Receipt from './pages/Receipt';
 import VendorPortal from './pages/VendorPortal';
+
+// Affiliate & Marketing
+import Affiliates from './pages/Affiliates/Affiliates';
+import AffiliatePortal from './pages/Affiliates/AffiliatePortal';
+import MarketingApp from './pages/marketing/App';
+import LandingPage from './pages/marketing/components/pages/LandingPage';
 const StaffProtectedRoute = ({ children }) => {
   const { currentUser, userRole } = useAppStore();
   if (!currentUser) {
@@ -92,7 +97,7 @@ const VendorProtectedRoute = ({ children }) => {
 const AppContent = () => {
   const location = useLocation();
   const isVendorRoute = location.pathname.startsWith('/vendor');
-  const isPublicRoute = ['/login', '/signup', '/register', '/unauthorized'].includes(location.pathname) || location.pathname.startsWith('/verify/');
+  const isPublicRoute = ['/login', '/signup', '/register', '/unauthorized'].includes(location.pathname) || location.pathname.startsWith('/verify/') || location.pathname.startsWith('/landing/');
 
   if (isVendorRoute || isPublicRoute) {
     return (
@@ -102,15 +107,17 @@ const AppContent = () => {
         <Route path="/register" element={<RegisterUser />} />
         <Route path="/unauthorized" element={<Unauthorized />} />
         <Route path="/verify/:identifier" element={<PublicVerificationPage />} />
+        <Route path="/landing/:slug" element={<LandingPage />} />
         
         <Route path="/vendor-portal" element={<VendorProtectedRoute><VendorPortal /></VendorProtectedRoute>} />
         <Route path="/vendor-dashboard" element={<StaffProtectedRoute><MainLayout /></StaffProtectedRoute>}>
           <Route index element={<Navigate to="/vendor-dashboard/analytics" replace />} />
           <Route path="analytics" element={<VendorAnalyticsDashboard />} />
           <Route path="vendors" element={<Vendors />} />
-          <Route path="assets" element={<Procurement />} />
+          <Route path="requirements" element={<Requirements />} />
           <Route path="contracts" element={<Contracts />} />
           <Route path="invoices" element={<Invoices />} />
+          <Route path="invoices/:id/receipt" element={<Receipt />} />
           <Route path="performance" element={<Performance />} />
           <Route path="risk-compliance" element={<RiskCompliance />} />
         </Route>
@@ -158,6 +165,7 @@ const AppContent = () => {
               <Route path="/settings/templates/create" element={<ProtectedRoute element={<TemplateFormPage />} />} />
               <Route path="/settings/templates/edit/:id" element={<ProtectedRoute element={<TemplateFormPage />} />} />
               <Route path="/settings/certificates" element={<ProtectedRoute element={<CertificatesList />} />} />
+              <Route path="/settings/billing" element={<ProtectedRoute element={<Billing />} />} />
               <Route path="/settings/*" element={<Navigate to="/settings/id-generation" replace />} />
 
               {/* ── HRMS ── */}
@@ -173,6 +181,11 @@ const AppContent = () => {
               <Route path="/crm/stages" element={<ProtectedRoute element={<LeadStageList />} />} />
               <Route path="/crm/stages/create" element={<ProtectedRoute element={<LeadStageForm />} />} />
               <Route path="/crm/stages/edit/:id" element={<ProtectedRoute element={<LeadStageForm />} />} />
+
+              {/* ── Affiliate & Marketing ── */}
+              <Route path="/affiliates" element={<ProtectedRoute element={<Affiliates />} />} />
+              <Route path="/affiliate/portal" element={<ProtectedRoute element={<AffiliatePortal />} />} />
+              <Route path="/marketing/*" element={<ProtectedRoute element={<MarketingApp />} />} />
 
               {/* Fallback */}
               <Route path="*" element={<Navigate to="/" replace />} />

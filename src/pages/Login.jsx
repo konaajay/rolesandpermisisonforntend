@@ -11,6 +11,19 @@ const Login = () => {
 
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [branding, setBranding] = useState(null);
+
+  React.useEffect(() => {
+    const hostname = window.location.hostname;
+    // Skip if localhost or standard IP/base domains (customize as needed)
+    if (hostname !== 'localhost' && hostname !== '127.0.0.1') {
+      api.get(`/public/tenant-branding?domain=${hostname}`)
+        .then(res => {
+          if (res.data) setBranding(res.data);
+        })
+        .catch(() => {});
+    }
+  }, []);
 
   const { login: authLogin } = useAuth();
   const { setCurrentUser } = useAppStore();
@@ -61,10 +74,16 @@ const Login = () => {
         <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-cyan-900/20 to-transparent pointer-events-none" />
 
         <div className="text-center mb-8 relative z-10">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-cyan-500/10 mb-4 shadow-lg shadow-cyan-500/10 border border-cyan-500/20">
-            <span className="text-3xl font-bold text-cyan-400">V</span>
-          </div>
-          <h2 className="text-2xl font-bold text-slate-50">Welcome Back</h2>
+          {branding?.logoUrl ? (
+            <img src={branding.logoUrl} alt="Logo" className="h-16 mx-auto mb-4 object-contain" />
+          ) : (
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-cyan-500/10 mb-4 shadow-lg shadow-cyan-500/10 border border-cyan-500/20">
+              <span className="text-3xl font-bold text-cyan-400">V</span>
+            </div>
+          )}
+          <h2 className="text-2xl font-bold text-slate-50">
+            {branding?.companyName ? `Welcome to ${branding.companyName}` : 'Welcome Back'}
+          </h2>
           <p className="text-slate-400 mt-2">Sign in to your account</p>
         </div>
 

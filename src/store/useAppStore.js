@@ -6,10 +6,10 @@ export const useAppStore = create(
     (set) => ({
       searchQuery: '',
       setSearchQuery: (query) => set({ searchQuery: query }),
-      theme: 'dark',
-      toggleTheme: () => set((state) => ({ theme: state.theme === 'dark' ? 'light' : 'dark' })),
       currentUser: null,
       userRole: null,
+      theme: 'light',
+      toggleTheme: () => set((state) => ({ theme: state.theme === 'light' ? 'dark' : 'light' })),
       setCurrentUser: (user, role = 'STAFF') => set({ currentUser: user, userRole: role }),
       logout: () => set({ currentUser: null, userRole: null }),
     }),

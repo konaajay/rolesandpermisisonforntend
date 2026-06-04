@@ -15,10 +15,15 @@ const Vendors = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [selectedVendor, setSelectedVendor] = useState(null);
+  const [activeTab, setActiveTab] = useState('Overview');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalEntries, setTotalEntries] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
+  const [isAddAssetModalOpen, setIsAddAssetModalOpen] = useState(false);
+  const [newAsset, setNewAsset] = useState({
+    name: '', type: '', status: 'Active'
+  });
   const itemsPerPage = 5;
   
   const [filters, setFilters] = useState({ status: [], risk: [] });
@@ -253,6 +258,7 @@ const Vendors = () => {
 
   const openViewModal = (vendor) => {
     setSelectedVendor(vendor);
+    setActiveTab('Overview');
     setIsViewModalOpen(true);
   };
 
@@ -620,67 +626,142 @@ const Vendors = () => {
               </div>
             </div>
             
-            <div className="grid grid-cols-2 gap-y-4 gap-x-6 text-sm">
-              <div>
-                <p className="text-slate-500 mb-1">Category</p>
-                <p className="text-slate-200 font-medium">{selectedVendor.categoryName}</p>
-              </div>
-              <div>
-                <p className="text-slate-500 mb-1">Company Name</p>
-                <p className="text-slate-200 font-medium">{selectedVendor.companyName || 'N/A'}</p>
-              </div>
-              <div>
-                <p className="text-slate-500 mb-1">Contact Person</p>
-                <p className="text-slate-200 font-medium">{selectedVendor.contact}</p>
-              </div>
-              <div>
-                <p className="text-slate-500 mb-1">GST Number</p>
-                <p className="text-slate-200">{selectedVendor.gstNumber || 'N/A'}</p>
-              </div>
-              <div>
-                <p className="text-slate-500 mb-1">PAN Number</p>
-                <p className="text-slate-200">{selectedVendor.panNumber || 'N/A'}</p>
-              </div>
-              <div>
-                <p className="text-slate-500 mb-1">Address</p>
-                <p className="text-slate-200">{[selectedVendor.address, selectedVendor.city, selectedVendor.state, selectedVendor.country].filter(Boolean).join(', ') || 'N/A'}</p>
-              </div>
-              <div>
-                <p className="text-slate-500 mb-1">Email Address</p>
-                <p className="text-slate-200 font-medium">{selectedVendor.email}</p>
-              </div>
-              <div>
-                <p className="text-slate-500 mb-1">Rating</p>
-                <div className="flex items-center">
-                  {selectedVendor.rating !== 'N/A' ? (
-                    <>
-                      <span className="font-semibold text-slate-50 mr-1">{selectedVendor.rating}</span>
-                      <span className="text-amber-400">★</span>
-                    </>
-                  ) : (
-                    <span className="text-slate-500">N/A</span>
-                  )}
-                </div>
-              </div>
-              <div>
-                <p className="text-slate-500 mb-1">Status</p>
-                <span className={`badge-success ${
-                  selectedVendor.status === 'Active' ? 'badge-success' : 
-                  selectedVendor.status === 'Under Review' ? 'badge-warning' : 'badge-error'
-                }`}>
-                  {selectedVendor.status}
-                </span>
-              </div>
-              <div>
-                <p className="text-slate-500 mb-1">Risk Level</p>
-                <div className="flex items-center">
-                  {selectedVendor.risk === 'Low' && <ShieldCheck size={16} className="text-emerald-500 mr-2" />}
-                  {selectedVendor.risk === 'Medium' && <AlertCircle size={16} className="text-amber-500 mr-2" />}
-                  {selectedVendor.risk === 'High' && <AlertCircle size={16} className="text-rose-500 mr-2" />}
-                  <span className="text-slate-200 font-medium">{selectedVendor.risk}</span>
-                </div>
-              </div>
+            <div className="flex border-b border-slate-700 mt-4 mb-4 gap-4">
+              {['Overview', 'Contracts', 'Invoices', 'Assets'].map(tab => (
+                <button 
+                  key={tab}
+                  className={`pb-2 px-1 text-sm font-medium border-b-2 transition-colors ${
+                    activeTab === tab ? 'border-cyan-500 text-cyan-400' : 'border-transparent text-slate-400 hover:text-slate-200'
+                  }`}
+                  onClick={(e) => { e.preventDefault(); setActiveTab(tab); }}
+                >
+                  {tab}
+                </button>
+              ))}
             </div>
+
+            {activeTab === 'Overview' && (
+              <div className="grid grid-cols-2 gap-y-4 gap-x-6 text-sm">
+                <div>
+                  <p className="text-slate-500 mb-1">Category</p>
+                  <p className="text-slate-200 font-medium">{selectedVendor.categoryName}</p>
+                </div>
+                <div>
+                  <p className="text-slate-500 mb-1">Company Name</p>
+                  <p className="text-slate-200 font-medium">{selectedVendor.companyName || 'N/A'}</p>
+                </div>
+                <div>
+                  <p className="text-slate-500 mb-1">Contact Person</p>
+                  <p className="text-slate-200 font-medium">{selectedVendor.contact}</p>
+                </div>
+                <div>
+                  <p className="text-slate-500 mb-1">GST Number</p>
+                  <p className="text-slate-200">{selectedVendor.gstNumber || 'N/A'}</p>
+                </div>
+                <div>
+                  <p className="text-slate-500 mb-1">PAN Number</p>
+                  <p className="text-slate-200">{selectedVendor.panNumber || 'N/A'}</p>
+                </div>
+                <div>
+                  <p className="text-slate-500 mb-1">Address</p>
+                  <p className="text-slate-200">{[selectedVendor.address, selectedVendor.city, selectedVendor.state, selectedVendor.country].filter(Boolean).join(', ') || 'N/A'}</p>
+                </div>
+                <div>
+                  <p className="text-slate-500 mb-1">Email Address</p>
+                  <p className="text-slate-200 font-medium">{selectedVendor.email}</p>
+                </div>
+                <div>
+                  <p className="text-slate-500 mb-1">Rating</p>
+                  <div className="flex items-center">
+                    {selectedVendor.rating !== 'N/A' ? (
+                      <>
+                        <span className="font-semibold text-slate-50 mr-1">{selectedVendor.rating}</span>
+                        <span className="text-amber-400">★</span>
+                      </>
+                    ) : (
+                      <span className="text-slate-500">N/A</span>
+                    )}
+                  </div>
+                </div>
+                <div>
+                  <p className="text-slate-500 mb-1">Status</p>
+                  <span className={`badge-success ${
+                    selectedVendor.status === 'Active' ? 'badge-success' : 
+                    selectedVendor.status === 'Under Review' ? 'badge-warning' : 'badge-error'
+                  }`}>
+                    {selectedVendor.status}
+                  </span>
+                </div>
+                <div>
+                  <p className="text-slate-500 mb-1">Risk Level</p>
+                  <div className="flex items-center">
+                    {selectedVendor.risk === 'Low' && <ShieldCheck size={16} className="text-emerald-500 mr-2" />}
+                    {selectedVendor.risk === 'Medium' && <AlertCircle size={16} className="text-amber-500 mr-2" />}
+                    {selectedVendor.risk === 'High' && <AlertCircle size={16} className="text-rose-500 mr-2" />}
+                    <span className="text-slate-200 font-medium">{selectedVendor.risk}</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'Assets' && (
+              <div className="space-y-4">
+                <div className="flex justify-between items-center mb-2">
+                  <h4 className="text-slate-200 font-medium">Assigned Assets</h4>
+                  <button type="button" onClick={() => setIsAddAssetModalOpen(true)} className="btn-primary text-xs py-1.5 px-3">+ Add Asset</button>
+                </div>
+                
+                <div className="overflow-x-auto border border-slate-700/50 rounded-lg">
+                  <table className="w-full text-left text-sm">
+                    <thead className="bg-slate-800/50 border-b border-slate-700/50 text-slate-400">
+                      <tr>
+                        <th className="px-4 py-2 font-medium">Asset Name</th>
+                        <th className="px-4 py-2 font-medium">Type</th>
+                        <th className="px-4 py-2 font-medium">Status</th>
+                        <th className="px-4 py-2 font-medium text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-700/50">
+                      {/* Placeholder data until backend is wired */}
+                      <tr className="hover:bg-slate-800/30">
+                        <td className="px-4 py-3 text-slate-200">MacBook Pro M2</td>
+                        <td className="px-4 py-3 text-slate-400">Laptop</td>
+                        <td className="px-4 py-3"><span className="badge-success">Active</span></td>
+                        <td className="px-4 py-3 text-right">
+                          <button className="text-slate-400 hover:text-slate-200 mx-1"><Eye size={14} /></button>
+                          <button className="text-slate-400 hover:text-rose-400 mx-1"><Trash2 size={14} /></button>
+                        </td>
+                      </tr>
+                      <tr className="hover:bg-slate-800/30">
+                        <td className="px-4 py-3 text-slate-200">Cisco Router X1</td>
+                        <td className="px-4 py-3 text-slate-400">Network</td>
+                        <td className="px-4 py-3"><span className="badge-success">Active</span></td>
+                        <td className="px-4 py-3 text-right">
+                          <button className="text-slate-400 hover:text-slate-200 mx-1"><Eye size={14} /></button>
+                          <button className="text-slate-400 hover:text-rose-400 mx-1"><Trash2 size={14} /></button>
+                        </td>
+                      </tr>
+                      <tr className="hover:bg-slate-800/30">
+                        <td className="px-4 py-3 text-slate-200">Dell PowerEdge</td>
+                        <td className="px-4 py-3 text-slate-400">Server</td>
+                        <td className="px-4 py-3"><span className="badge-warning">Maintenance</span></td>
+                        <td className="px-4 py-3 text-right">
+                          <button className="text-slate-400 hover:text-slate-200 mx-1"><Eye size={14} /></button>
+                          <button className="text-slate-400 hover:text-rose-400 mx-1"><Trash2 size={14} /></button>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+            
+            {(activeTab === 'Contracts' || activeTab === 'Invoices') && (
+              <div className="bg-slate-900/50 rounded-lg p-6 text-center border border-slate-800 min-h-[200px] flex flex-col items-center justify-center">
+                <p className="text-slate-400 text-sm">No {activeTab.toLowerCase()} found.</p>
+              </div>
+            )}
+
             <div className="pt-4 flex justify-end">
               <button onClick={() => setIsViewModalOpen(false)} className="btn-secondary">Close</button>
             </div>
@@ -748,6 +829,55 @@ const Vendors = () => {
           </div>
         </div>
       </Modal>
+
+      <Modal isOpen={isAddAssetModalOpen} onClose={() => setIsAddAssetModalOpen(false)} title="Add Asset">
+        <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); console.log("Add Asset", newAsset); setIsAddAssetModalOpen(false); }}>
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-1">Vendor *</label>
+            <select className="input-field disabled:opacity-50" disabled>
+              <option>{selectedVendor?.name || 'Select Vendor'}</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-1">Asset Name *</label>
+            <input 
+              type="text" 
+              className="input-field" 
+              required 
+              placeholder="e.g. MacBook Pro M2" 
+              value={newAsset.name} 
+              onChange={(e) => setNewAsset({...newAsset, name: e.target.value})} 
+            />
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-1">Type</label>
+              <select className="input-field" value={newAsset.type} onChange={(e) => setNewAsset({...newAsset, type: e.target.value})}>
+                <option value="">Select Type</option>
+                <option value="Laptop">Laptop</option>
+                <option value="Monitor">Monitor</option>
+                <option value="Network">Network</option>
+                <option value="Server">Server</option>
+                <option value="Software">Software</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-1">Status</label>
+              <select className="input-field" value={newAsset.status} onChange={(e) => setNewAsset({...newAsset, status: e.target.value})}>
+                <option value="Active">Active</option>
+                <option value="Maintenance">Maintenance</option>
+                <option value="Retired">Retired</option>
+              </select>
+            </div>
+          </div>
+          <div className="pt-4 flex justify-end gap-3">
+            <button type="button" onClick={() => setIsAddAssetModalOpen(false)} className="btn-secondary">Cancel</button>
+            <button type="submit" className="btn-primary">Save</button>
+          </div>
+        </form>
+      </Modal>
+
     </motion.div>
   );
 };

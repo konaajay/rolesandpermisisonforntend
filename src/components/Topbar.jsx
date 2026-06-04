@@ -1,12 +1,12 @@
 import { useState } from 'react';
-import { Bell, Search, Menu, X, Moon, Sun, LayoutDashboard, Users, ShoppingCart, FileText, CreditCard, TrendingUp, ShieldAlert } from 'lucide-react';
+import { Bell, Search, Menu, X, LayoutDashboard, Users, ShoppingCart, FileText, CreditCard, TrendingUp, ShieldAlert, HardDrive } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import { useAppStore } from '../store/useAppStore';
 
 const navItems = [
   { path: '/vendor-dashboard/analytics', label: 'Dashboard', icon: LayoutDashboard },
   { path: '/vendor-dashboard/vendors', label: 'Vendors', icon: Users },
-  { path: '/vendor-dashboard/assets', label: 'Assets', icon: ShoppingCart },
+  { path: '/vendor-dashboard/requirements', label: 'Requirements', icon: HardDrive },
   { path: '/vendor-dashboard/contracts', label: 'Contracts', icon: FileText },
   { path: '/vendor-dashboard/invoices', label: 'Invoices', icon: CreditCard },
   { path: '/vendor-dashboard/performance', label: 'Performance', icon: TrendingUp },
@@ -14,7 +14,7 @@ const navItems = [
 ];
 
 const Topbar = () => {
-  const { searchQuery, setSearchQuery, theme, toggleTheme, currentUser } = useAppStore();
+  const { searchQuery, setSearchQuery, currentUser } = useAppStore();
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -53,14 +53,6 @@ const Topbar = () => {
         </div>
 
         <div className="flex items-center space-x-2 sm:space-x-4 ml-auto">
-          <button 
-            onClick={toggleTheme}
-            className="p-2 text-slate-400 hover:text-slate-50 hover:bg-slate-800 rounded-full transition-colors"
-            title="Toggle Theme"
-          >
-            {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
-          </button>
-
           <button className="relative p-2 text-slate-400 hover:text-slate-50 hover:bg-slate-800 rounded-full transition-colors">
             <Bell size={20} />
             <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-emerald-500 rounded-full ring-2 ring-slate-900"></span>

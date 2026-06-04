@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 export default function CreateTenant() {
   const [tenantName, setTenantName] = useState('');
   const [tenantCode, setTenantCode] = useState('');
+  const [domain, setDomain] = useState('');
   const [adminFirstName, setAdminFirstName] = useState('');
   const [adminLastName, setAdminLastName] = useState('');
   const [adminEmail, setAdminEmail] = useState('');
@@ -24,6 +25,7 @@ export default function CreateTenant() {
     const payload = {
       tenantName,
       tenantCode: tenantCode || null,
+      domain: domain || null,
       adminFirstName,
       adminLastName,
       adminEmail,
@@ -99,6 +101,17 @@ export default function CreateTenant() {
                 placeholder="Last Name"
               />
             </div>
+          </div>
+
+          <div className="mb-3">
+            <label className="form-label">Custom Domain (Optional)</label>
+            <input
+              type="text"
+              className="form-control"
+              value={domain}
+              onChange={(e) => setDomain(e.target.value)}
+              placeholder="e.g. acme.classx360.com or lms.acme.com"
+            />
           </div>
 
           <div className="mb-3">
