@@ -13,6 +13,15 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const [branding, setBranding] = useState(null);
 
+  // Forgot password state
+  const [isForgotPasswordOpen, setIsForgotPasswordOpen] = useState(false);
+  const [fpStep, setFpStep] = useState(1);
+  const [fpEmail, setFpEmail] = useState('');
+  const [fpOtp, setFpOtp] = useState('');
+  const [fpNewPassword, setFpNewPassword] = useState('');
+  const [fpLoading, setFpLoading] = useState(false);
+  const [fpMessage, setFpMessage] = useState('');
+
   React.useEffect(() => {
     const hostname = window.location.hostname;
     // Skip if localhost or standard IP/base domains (customize as needed)
@@ -45,14 +54,19 @@ const Login = () => {
       // Setup both AuthContext and Zustand AppStore
       authLogin(token, permissions, modules, respTenantCode);
       
-      // Find if this is vendor
-      const isVendor = roleName && roleName.toUpperCase() === 'VENDOR';
+      // External vendor (role literally named VENDOR) → simple vendor portal
+      // Internal staff with VENDOR module access → VendorOS dashboard
+      // Everyone else → main dashboard
+      const isExternalVendor = roleName && roleName.toUpperCase() === 'VENDOR';
+      const hasVendorModule = Array.isArray(modules) && modules.includes('VENDOR');
       
-      const storeRole = isVendor ? 'VENDOR' : 'STAFF';
+      const storeRole = isExternalVendor ? 'VENDOR' : 'STAFF';
       setCurrentUser(email, storeRole);
       
-      if (storeRole === 'VENDOR') {
+      if (isExternalVendor) {
         navigate('/vendor-portal');
+      } else if (hasVendorModule) {
+        navigate('/vendor-dashboard/analytics');
       } else {
         navigate('/dashboard');
       }
@@ -64,6 +78,44 @@ const Login = () => {
       }
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSendOtp = async (e) => {
+    e.preventDefault();
+    setFpLoading(true);
+    setFpMessage('');
+    try {
+      await api.post('/auth/forgot-password', { email: fpEmail });
+      setFpStep(2);
+      setFpMessage('OTP sent to your email.');
+    } catch (err) {
+      setFpMessage(err.response?.data?.message || err.message || 'Failed to send OTP');
+    } finally {
+      setFpLoading(false);
+    }
+  };
+
+  const handleResetPassword = async (e) => {
+    e.preventDefault();
+    if (fpNewPassword.length < 8) {
+        setFpMessage('Password must be at least 8 characters long');
+        return;
+    }
+    setFpLoading(true);
+    setFpMessage('');
+    try {
+      await api.post('/auth/reset-password-otp', { email: fpEmail, otp: fpOtp, newPassword: fpNewPassword });
+      setFpMessage('Password reset successfully! You can now log in.');
+      setFpStep(1);
+      setTimeout(() => {
+          setIsForgotPasswordOpen(false);
+          setFpMessage('');
+      }, 2000);
+    } catch (err) {
+      setFpMessage(err.response?.data?.message || err.message || 'Failed to reset password');
+    } finally {
+      setFpLoading(false);
     }
   };
 
@@ -99,6 +151,65 @@ const Login = () => {
           </div>
         </Modal>
 
+        <Modal isOpen={isForgotPasswordOpen} onClose={() => setIsForgotPasswordOpen(false)} title="Reset Password">
+            <div className="p-4 text-slate-200">
+                {fpMessage && <div className={`mb-4 p-3 rounded-lg text-sm ${fpMessage.includes('success') ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'}`}>{fpMessage}</div>}
+                
+                {fpStep === 1 ? (
+                    <form onSubmit={handleSendOtp} className="space-y-4">
+                        <div>
+                            <label className="block text-sm font-medium text-slate-300 mb-2">Enter your Email</label>
+                            <input
+                                type="email"
+                                required
+                                placeholder="name@company.com"
+                                className="w-full bg-slate-950/50 border border-slate-700 text-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-1 focus:ring-cyan-500 focus:border-cyan-500 transition-all placeholder:text-slate-600"
+                                value={fpEmail}
+                                onChange={(e) => setFpEmail(e.target.value)}
+                            />
+                        </div>
+                        <div className="pt-2 flex justify-end gap-3">
+                            <button type="button" onClick={() => setIsForgotPasswordOpen(false)} className="px-4 py-2 bg-slate-800 text-slate-300 rounded-lg hover:bg-slate-700 transition-colors">Cancel</button>
+                            <button type="submit" disabled={fpLoading} className="px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-500 transition-colors disabled:opacity-50">
+                                {fpLoading ? 'Sending...' : 'Send OTP'}
+                            </button>
+                        </div>
+                    </form>
+                ) : (
+                    <form onSubmit={handleResetPassword} className="space-y-4">
+                        <div>
+                            <label className="block text-sm font-medium text-slate-300 mb-2">Enter OTP</label>
+                            <input
+                                type="text"
+                                required
+                                placeholder="123456"
+                                className="w-full bg-slate-950/50 border border-slate-700 text-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-1 focus:ring-cyan-500 focus:border-cyan-500 transition-all placeholder:text-slate-600"
+                                value={fpOtp}
+                                onChange={(e) => setFpOtp(e.target.value)}
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-slate-300 mb-2">New Password</label>
+                            <input
+                                type="password"
+                                required
+                                placeholder="••••••••"
+                                className="w-full bg-slate-950/50 border border-slate-700 text-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-1 focus:ring-cyan-500 focus:border-cyan-500 transition-all placeholder:text-slate-600"
+                                value={fpNewPassword}
+                                onChange={(e) => setFpNewPassword(e.target.value)}
+                            />
+                        </div>
+                        <div className="pt-2 flex justify-end gap-3">
+                            <button type="button" onClick={() => setFpStep(1)} className="px-4 py-2 bg-slate-800 text-slate-300 rounded-lg hover:bg-slate-700 transition-colors">Back</button>
+                            <button type="submit" disabled={fpLoading} className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-500 transition-colors disabled:opacity-50">
+                                {fpLoading ? 'Resetting...' : 'Reset Password'}
+                            </button>
+                        </div>
+                    </form>
+                )}
+            </div>
+        </Modal>
+
         <form onSubmit={handleLogin} className="space-y-5 relative z-10">
 
 
@@ -115,7 +226,16 @@ const Login = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-2">Password</label>
+            <div className="flex justify-between items-center mb-2">
+              <label className="block text-sm font-medium text-slate-300">Password</label>
+              <button 
+                type="button" 
+                onClick={() => { setFpStep(1); setFpMessage(''); setFpEmail(email); setIsForgotPasswordOpen(true); }}
+                className="text-xs text-cyan-400 hover:text-cyan-300 transition-colors"
+              >
+                Forgot Password?
+              </button>
+            </div>
             <input
               type="password"
               required

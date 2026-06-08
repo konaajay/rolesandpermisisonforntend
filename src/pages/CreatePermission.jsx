@@ -82,7 +82,7 @@ export default function CreatePermission() {
                   value={module}
                   onChange={(e) => setModule(e.target.value.toUpperCase())}
                   required
-                  placeholder="e.g. AFFILIATE"
+                  placeholder="e.g. MARKETING"
                 />
               </div>
 

@@ -29,7 +29,7 @@ function App() {
           <Route path="promo-codes" element={<PromoCodes />} />
           <Route path="referral" element={<ReferralHub />} />
           <Route path="campaigns" element={<UniversalCampaignManager />} />
-          <Route path="affiliate" element={<SocialLinkGenerator />} />
+          <Route path="social-links" element={<SocialLinkGenerator />} />
           <Route path="page" element={<CampaignPage />} />
 
           <Route path="*" element={<Navigate to="/admin/marketing" replace />} />

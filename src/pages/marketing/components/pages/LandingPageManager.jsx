@@ -3,10 +3,10 @@ import { useNavigate } from 'react-router-dom';
 
 import { getLandingPages, createLandingPage, updateLandingPage, deleteLandingPage, seedLandingPages, getTrackedLinks } from '../../services/api';
 import { LuDatabase, LuPlus, LuFilePlus, LuEye, LuSearch, LuPencil, LuTrash2, LuX, LuLink, LuExternalLink, LuMousePointerClick, LuChevronDown, LuChevronUp, LuInfo } from 'react-icons/lu';
-
-
+import { usePermissions } from '../../../../auth/usePermissions';
 
 const LandingPageManager = () => {
+    const { hasPermission } = usePermissions();
     const [pages, setPages] = useState([]);
     const [trackedLinks, setTrackedLinks] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
@@ -133,18 +133,20 @@ const LandingPageManager = () => {
                     <p className="text-muted small mb-0">Unified table view for high-conversion management.</p>
                 </div>
                 <div className="d-flex gap-2">
-                   <button 
-                        className="btn shadow-lg px-4 fw-bold" 
-                        style={{ 
-                            background: showForm ? '#dc3545' : '#0d6efd', 
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '10px'
-                        }} 
-                        onClick={() => setShowForm(!showForm)}
-                    >
-                        {showForm ? 'Close Form' : <><LuPlus className="me-2" /> Create New Page</>}
-                   </button>
+                   {hasPermission('MARKETING_CREATE') && (
+                       <button 
+                            className="btn shadow-lg px-4 fw-bold" 
+                            style={{ 
+                                background: showForm ? '#dc3545' : '#0d6efd', 
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '10px'
+                            }} 
+                            onClick={() => setShowForm(!showForm)}
+                        >
+                            {showForm ? 'Close Form' : <><LuPlus className="me-2" /> Create New Page</>}
+                       </button>
+                   )}
                 </div>
             </div>
 
@@ -236,8 +238,12 @@ const LandingPageManager = () => {
                                             </td>
                                             <td className="text-end pe-4">
                                                 <div className="btn-group shadow-sm bg-white rounded border overflow-hidden">
-                                                    <button className="btn btn-sm btn-white border-0 text-primary" onClick={(e) => handleEdit(page, e)}><LuPencil size={15} /></button>
-                                                    <button className="btn btn-sm btn-white border-0 text-danger" onClick={(e) => handleDelete(page.id, e)}><LuTrash2 size={15} /></button>
+                                                    {hasPermission('MARKETING_UPDATE') && (
+                                                        <button className="btn btn-sm btn-white border-0 text-primary" onClick={(e) => handleEdit(page, e)}><LuPencil size={15} /></button>
+                                                    )}
+                                                    {hasPermission('MARKETING_DELETE') && (
+                                                        <button className="btn btn-sm btn-white border-0 text-danger" onClick={(e) => handleDelete(page.id, e)}><LuTrash2 size={15} /></button>
+                                                    )}
                                                 </div>
                                             </td>
                                         </tr>
@@ -258,7 +264,7 @@ const LandingPageManager = () => {
                                                                                 <div className="progress-bar bg-primary" style={{width: '100%'}}></div>
                                                                             </div>
                                                                             <div className="d-flex justify-content-between smallest fw-bold text-muted mt-1">
-                                                                                <span>Clicks: <span className="text-dark">{link.clicks || 0}</span></span>
+                                                                                <span>Clicks: <span className="text-dark">{link.views || 0}</span></span>
                                                                                 <span>Leads: <span className="text-success">{link.signups || 0}</span></span>
                                                                             </div>
                                                                         </div>

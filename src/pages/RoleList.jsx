@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { usePermissions } from '../auth/usePermissions';
 import EntityListPage from '../components/EntityListPage';
+import UserManagementNav from '../components/UserManagementNav';
 
 export default function RoleList() {
   const navigate = useNavigate();
@@ -53,6 +54,7 @@ export default function RoleList() {
           {toast.msg}
         </div>
       )}
+      <UserManagementNav />
       <EntityListPage title="Roles" description="Manage roles and their permissions"
         addLabel={hasPermission('ROLE_CREATE') ? '+ Add Role' : undefined}
         addRoute="/roles/create"

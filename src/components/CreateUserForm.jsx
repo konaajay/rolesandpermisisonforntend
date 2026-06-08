@@ -46,6 +46,8 @@ export default function CreateUserForm() {
     const [selectedRole, setSelectedRole] = useState(null);
     const [dynamicFields, setDynamicFields] = useState([]);
     const [supervisors, setSupervisors] = useState([]);
+    const [availableModules, setAvailableModules] = useState([]);
+    const [availablePermissions, setAvailablePermissions] = useState([]);
     const [message, setMessage] = useState(null);
     const [error, setError] = useState(null);
     
@@ -58,23 +60,29 @@ export default function CreateUserForm() {
         roleId: null,
         roleCode: '',
         supervisorUserId: '',
-        profileData: {}
+        profileData: {},
+        modules: [],
+        permissionIds: []
     });
 
     useEffect(() => {
-        const fetchRoles = async () => {
+        const fetchInitialData = async () => {
             const token = localStorage.getItem('token');
             try {
-                const res = await fetch('/api/roles', { headers: { 'Authorization': `Bearer ${token}` } });
-                if (res.ok) {
-                    const roles = await res.json();
-                    setAssignableRoles(roles);
-                }
+                const [rolesRes, modulesRes, permsRes] = await Promise.all([
+                    fetch('/api/roles', { headers: { 'Authorization': `Bearer ${token}` } }),
+                    fetch('/api/tenant/modules', { headers: { 'Authorization': `Bearer ${token}` } }),
+                    fetch('/api/permissions', { headers: { 'Authorization': `Bearer ${token}` } })
+                ]);
+                
+                if (rolesRes.ok) setAssignableRoles(await rolesRes.json());
+                if (modulesRes.ok) setAvailableModules(await modulesRes.json());
+                if (permsRes.ok) setAvailablePermissions(await permsRes.json());
             } catch (err) {
-                console.error("Failed to fetch roles", err);
+                console.error("Failed to fetch initial data", err);
             }
         };
-        fetchRoles();
+        fetchInitialData();
     }, []);
 
     const handleRoleSelect = async (e) => {
@@ -158,6 +166,28 @@ export default function CreateUserForm() {
         }));
     };
 
+    const handleModuleToggle = (moduleName) => {
+        setFormData(prev => {
+            const currentModules = prev.modules || [];
+            if (currentModules.includes(moduleName)) {
+                return { ...prev, modules: currentModules.filter(m => m !== moduleName) };
+            } else {
+                return { ...prev, modules: [...currentModules, moduleName] };
+            }
+        });
+    };
+
+    const handlePermissionToggle = (permissionId) => {
+        setFormData(prev => {
+            const currentPerms = prev.permissionIds || [];
+            if (currentPerms.includes(permissionId)) {
+                return { ...prev, permissionIds: currentPerms.filter(p => p !== permissionId) };
+            } else {
+                return { ...prev, permissionIds: [...currentPerms, permissionId] };
+            }
+        });
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setMessage(null);
@@ -184,7 +214,9 @@ export default function CreateUserForm() {
                     roleId: null,
                     roleCode: '',
                     supervisorUserId: '',
-                    profileData: {}
+                    profileData: {},
+                    modules: [],
+                    permissionIds: []
                 });
                 setSelectedRole(null);
                 setDynamicFields([]);
@@ -263,6 +295,41 @@ export default function CreateUserForm() {
                             </option>
                         ))}
                     </select>
+                </div>
+
+                <h3 className="font-semibold text-gray-700 mt-8 mb-3 text-lg">User-Level Modules</h3>
+                <div className="grid grid-cols-2 gap-2 mb-6">
+                    {availableModules.map(mod => (
+                        <label key={mod.id || mod.moduleName || mod} className="flex items-center space-x-2">
+                            <input 
+                                type="checkbox" 
+                                checked={formData.modules.includes(mod.moduleName || mod)}
+                                onChange={() => handleModuleToggle(mod.moduleName || mod)}
+                                className="w-4 h-4 text-blue-600 rounded border-gray-300"
+                            />
+                            <span className="text-sm text-gray-700">{mod.moduleName || mod}</span>
+                        </label>
+                    ))}
+                </div>
+
+                <h3 className="font-semibold text-gray-700 mt-8 mb-3 text-lg">User-Level Permissions</h3>
+                <div className="max-h-60 overflow-y-auto border p-4 rounded bg-gray-50 mb-6">
+                    {availablePermissions
+                        .filter(p => formData.modules.includes(p.module) || formData.modules.length === 0)
+                        .map(perm => (
+                        <label key={perm.id} className="flex items-center space-x-2 mb-2">
+                            <input 
+                                type="checkbox" 
+                                checked={formData.permissionIds.includes(perm.id)}
+                                onChange={() => handlePermissionToggle(perm.id)}
+                                className="w-4 h-4 text-blue-600 rounded border-gray-300"
+                            />
+                            <span className="text-sm text-gray-700">[{perm.module}] {perm.action} - {perm.description}</span>
+                        </label>
+                    ))}
+                    {availablePermissions.length > 0 && formData.modules.length > 0 && availablePermissions.filter(p => formData.modules.includes(p.module)).length === 0 && (
+                        <p className="text-sm text-gray-500">No permissions found for the selected modules.</p>
+                    )}
                 </div>
 
                 {/* Supervisor Selection Rendering */}

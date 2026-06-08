@@ -72,10 +72,18 @@ export default function UserForm() {
   const [supervisorUserId, setSupervisor] = useState('');
   const [profileData, setProfileData]   = useState({});
 
+  const [availablePermissions, setAvailablePermissions] = useState([]);
+  const [selectedPermissions, setSelectedPermissions] = useState([]);
+  const [permissionSearch, setPermissionSearch] = useState('');
+  const [selectedEntityIds, setSelectedEntityIds] = useState([]);
+  const [selectedDepartmentIds, setSelectedDepartmentIds] = useState([]);
+
   /* ── lookup data ─────────────────────────────────────────── */
   const [roles, setRoles]               = useState([]);
   const [supervisors, setSupervisors]   = useState([]);
   const [dynamicFields, setDynamic]     = useState([]);
+  const [availableEntities, setAvailableEntities] = useState([]);
+  const [availableDepartments, setAvailableDepartments] = useState([]);
 
   /* ── ui state ────────────────────────────────────────────── */
   const [loading, setLoading]           = useState(false);
@@ -83,7 +91,7 @@ export default function UserForm() {
   const [error, setError]               = useState(null);
   const [success, setSuccess]           = useState(null);
 
-  /* ── on mount: fetch roles + (if edit) user data ─────────── */
+  /* ── on mount: fetch roles + modules/permissions + (if edit) user data ─────────── */
   useEffect(() => {
     const ctrl = new AbortController();
 
@@ -91,6 +99,16 @@ export default function UserForm() {
       try {
         const rolesRes = await api.get('/roles', { signal: ctrl.signal });
         setRoles(rolesRes.data);
+
+        const permsRes = await api.get('/permissions', { signal: ctrl.signal });
+        setAvailablePermissions(permsRes.data || []);
+
+        const [entRes, deptRes] = await Promise.all([
+          api.get('/business-entities/active', { signal: ctrl.signal }).catch(() => ({ data: [] })),
+          api.get('/departments/active', { signal: ctrl.signal }).catch(() => ({ data: [] }))
+        ]);
+        setAvailableEntities((entRes.data || []).filter(e => e.showInUserForm !== false));
+        setAvailableDepartments((deptRes.data || []).filter(d => d.showInUserForm !== false));
 
         if (isEdit) {
           const userRes = await api.get(`/users/${id}`, { signal: ctrl.signal });
@@ -103,6 +121,9 @@ export default function UserForm() {
           setRoleId(u.roleId ? String(u.roleId) : '');
           setSupervisor(u.supervisorUserId ? String(u.supervisorUserId) : '');
           setProfileData(u.profileData || {});
+          setSelectedPermissions(u.permissionIds || []);
+          setSelectedEntityIds(u.entityIds || []);
+          setSelectedDepartmentIds(u.departmentIds || []);
         }
       } catch (err) {
         if (err.name === 'CanceledError') return;
@@ -143,6 +164,104 @@ export default function UserForm() {
     return () => ctrl.abort();
   }, [selectedRoleId]);
 
+
+
+  const handlePermissionToggle = (permissionId) => {
+      if (selectedPermissions.includes(permissionId)) {
+          setSelectedPermissions(selectedPermissions.filter(p => p !== permissionId));
+      } else {
+          setSelectedPermissions([...selectedPermissions, permissionId]);
+      }
+  };
+
+  const renderPermissionCheckboxes = () => {
+    let filteredPerms = availablePermissions;
+    
+    if (permissionSearch.trim()) {
+        const query = permissionSearch.toLowerCase();
+        filteredPerms = filteredPerms.filter(p => 
+            (p.action && p.action.toLowerCase().includes(query)) || 
+            (p.permissionKey && p.permissionKey.toLowerCase().includes(query)) ||
+            (p.description && p.description.toLowerCase().includes(query)) ||
+            (p.module && p.module.toLowerCase().includes(query))
+        );
+    }
+    
+    if (filteredPerms.length === 0) {
+      return (
+        <div className="text-center p-4 bg-white border rounded">
+          <p className="text-muted small m-0 fw-medium">No permissions found matching your criteria.</p>
+        </div>
+      );
+    }
+
+    const grouped = filteredPerms.reduce((acc, perm) => {
+      const mod = perm.module || 'Other';
+      if (!acc[mod]) acc[mod] = [];
+      acc[mod].push(perm);
+      return acc;
+    }, {});
+
+    return Object.keys(grouped).map((mod) => {
+      const modPermIds = grouped[mod].map(p => p.id);
+      const allSelected = modPermIds.length > 0 && modPermIds.every(id => selectedPermissions.includes(id));
+      
+      const toggleSelectAll = () => {
+        if (allSelected) {
+          setSelectedPermissions(prev => prev.filter(id => !modPermIds.includes(id)));
+        } else {
+          setSelectedPermissions(prev => {
+            const newIds = new Set([...prev, ...modPermIds]);
+            return Array.from(newIds);
+          });
+        }
+      };
+
+      return (
+        <div key={mod} className="mb-4 bg-white p-3 rounded shadow-sm border border-light">
+          <div className="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
+            <h6 className="text-primary mb-0" style={{ fontSize: '0.85rem', fontWeight: 'bold', textTransform: 'uppercase' }}>
+              {mod}
+            </h6>
+            <button 
+              type="button" 
+              className="btn btn-sm btn-link text-decoration-none p-0 fw-medium" 
+              style={{ fontSize: '0.75rem' }} 
+              onClick={toggleSelectAll}
+            >
+              {allSelected ? 'Deselect All' : 'Select All'}
+            </button>
+          </div>
+          <div className="d-flex flex-wrap gap-2">
+            {grouped[mod].map((perm) => {
+              const isChecked = selectedPermissions.includes(perm.id);
+              return (
+                <div
+                  key={perm.id}
+                  className="form-check form-check-inline bg-light px-3 py-2 rounded border d-flex align-items-center m-0 flex-grow-1"
+                  style={{ minWidth: '220px', cursor: 'pointer' }}
+                >
+                  <input
+                    className="form-check-input me-2 mt-0"
+                    type="checkbox"
+                    id={`perm-${perm.id}`}
+                    checked={isChecked}
+                    onChange={() => handlePermissionToggle(perm.id)}
+                    disabled={!perm.active}
+                    style={{ cursor: 'pointer' }}
+                  />
+                  <label className="form-check-label small text-truncate" htmlFor={`perm-${perm.id}`} title={`${perm.action}: ${perm.description}`} style={{ cursor: 'pointer' }}>
+                    <strong>{perm.action || perm.permissionKey}</strong>
+                  </label>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      );
+    });
+  };
+
   /* ── submit ──────────────────────────────────────────────── */
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -159,6 +278,9 @@ export default function UserForm() {
       roleId: selectedRoleId ? parseInt(selectedRoleId, 10) : null,
       supervisorUserId: supervisorUserId ? parseInt(supervisorUserId, 10) : null,
       profileData,
+      permissionIds: selectedPermissions,
+      entityIds: selectedEntityIds,
+      departmentIds: selectedDepartmentIds,
       ...(isEdit ? {} : { password }),
     };
 
@@ -313,7 +435,97 @@ export default function UserForm() {
                   />
                 </div>
               ))}
+            </div>
 
+            {availableEntities.length > 0 && (
+              <div className="mb-4">
+                <h6 className="fw-bold text-secondary mb-3" style={{ letterSpacing: '1px', fontSize: '11px', textTransform: 'uppercase' }}>ASSIGN BUSINESS ENTITIES</h6>
+                <div className="d-flex flex-wrap gap-2 p-3 bg-light rounded border">
+                  {availableEntities.map(en => {
+                    const isChecked = selectedEntityIds.includes(en.id);
+                    return (
+                      <div key={en.id} className="form-check form-check-inline bg-white px-3 py-2 rounded border m-0" style={{ cursor: 'pointer' }}>
+                        <input
+                          className="form-check-input mt-0 me-2"
+                          type="checkbox"
+                          id={`ent-${en.id}`}
+                          checked={isChecked}
+                          onChange={(e) => {
+                            if (e.target.checked) setSelectedEntityIds([...selectedEntityIds, en.id]);
+                            else setSelectedEntityIds(selectedEntityIds.filter(id => id !== en.id));
+                          }}
+                          style={{ cursor: 'pointer' }}
+                        />
+                        <label className="form-check-label small fw-medium" htmlFor={`ent-${en.id}`} style={{ cursor: 'pointer' }}>
+                          {en.entityCode} - {en.companyName}
+                        </label>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {availableDepartments.length > 0 && (
+              <div className="mb-4">
+                <h6 className="fw-bold text-secondary mb-3" style={{ letterSpacing: '1px', fontSize: '11px', textTransform: 'uppercase' }}>ASSIGN DEPARTMENTS</h6>
+                <div className="d-flex flex-wrap gap-2 p-3 bg-light rounded border">
+                  {availableDepartments.map(dp => {
+                    const isChecked = selectedDepartmentIds.includes(dp.id);
+                    return (
+                      <div key={dp.id} className="form-check form-check-inline bg-white px-3 py-2 rounded border m-0" style={{ cursor: 'pointer' }}>
+                        <input
+                          className="form-check-input mt-0 me-2"
+                          type="checkbox"
+                          id={`dept-${dp.id}`}
+                          checked={isChecked}
+                          onChange={(e) => {
+                            if (e.target.checked) setSelectedDepartmentIds([...selectedDepartmentIds, dp.id]);
+                            else setSelectedDepartmentIds(selectedDepartmentIds.filter(id => id !== dp.id));
+                          }}
+                          style={{ cursor: 'pointer' }}
+                        />
+                        <label className="form-check-label small fw-medium" htmlFor={`dept-${dp.id}`} style={{ cursor: 'pointer' }}>
+                          {dp.deptCode} - {dp.deptName}
+                        </label>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+            <div className="d-flex justify-content-between align-items-center mb-3">
+              <h6 className="fw-bold text-secondary mb-0" style={{ letterSpacing: '1px' }}>USER-LEVEL PERMISSIONS</h6>
+              
+              <div className="d-flex align-items-center gap-3">
+                <input 
+                    type="text" 
+                    className="form-control form-control-sm border-0 shadow-sm" 
+                    placeholder="Search permissions..." 
+                    value={permissionSearch}
+                    onChange={(e) => setPermissionSearch(e.target.value)}
+                    style={{ width: '250px', borderRadius: '8px' }}
+                />
+                <button 
+                  type="button" 
+                  className="btn btn-sm btn-outline-primary fw-medium"
+                  style={{ borderRadius: '8px' }}
+                  onClick={() => {
+                    const availableIds = availablePermissions.map(p => p.id);
+                    if (selectedPermissions.length === availableIds.length) {
+                        setSelectedPermissions([]);
+                    } else {
+                        setSelectedPermissions(availableIds);
+                    }
+                  }}
+                >
+                  {selectedPermissions.length > 0 && selectedPermissions.length === availablePermissions.length ? 'Deselect All' : 'Select All'}
+                </button>
+              </div>
+            </div>
+            
+            <div className="p-3 mb-4 bg-light shadow-inner rounded" style={{ maxHeight: '400px', overflowY: 'auto', border: '1px solid #e9ecef' }}>
+                {renderPermissionCheckboxes()}
             </div>
 
             <div className="mt-5 d-flex gap-3">

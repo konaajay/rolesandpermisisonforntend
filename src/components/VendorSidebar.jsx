@@ -64,7 +64,6 @@ export default function VendorSidebar() {
               {hasPermission('USER_VIEW') && isModuleEnabled('EMPLOYEE') && <Link className={isActive('/users', false)} to="/users">Users</Link>}
               {hasPermission('ROLE_CREATE') && <Link className={isActive('/roles', false)} to="/roles">Roles</Link>}
               {hasPermission('PERMISSION_CREATE') && <Link className={isActive('/permissions')} to="/permissions">Permissions</Link>}
-              {hasPermission('ROLE_CREATE') && <Link className={isActive('/role-mapping')} to="/role-mapping">Role Mapping</Link>}
               <Link className={isActive('/role-hierarchy')} to="/role-hierarchy">Role Hierarchy</Link>
             </div>
           </>

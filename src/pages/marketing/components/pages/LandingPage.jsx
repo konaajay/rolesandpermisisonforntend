@@ -145,7 +145,7 @@ const LandingPage = () => {
             );
         }
 
-        if (modType === 'AFFILIATE') {
+        if (false) {
             return (
                 <>
                     <div className="mb-3">

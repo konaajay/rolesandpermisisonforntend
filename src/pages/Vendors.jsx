@@ -39,7 +39,7 @@ const Vendors = () => {
   const fetchCategories = async () => {
     try {
       const response = await api.get('/api/vendor-categories');
-      if (response.data.success) {
+      if (response.data && response.data.data) {
         setCategories(response.data.data);
       }
     } catch (error) {
@@ -63,7 +63,7 @@ const Vendors = () => {
 
       const response = await api.get(endpoint, { params });
       
-      if (response.data.success) {
+      if (response.data && response.data.data) {
         // Adapt backend payload to frontend format
         let fetchedVendors = response.data.data.content.map(v => ({
           id: v.id,
@@ -186,6 +186,44 @@ const Vendors = () => {
     }
   };
 
+  const handleToggleCategoryStatus = async (cat) => {
+    try {
+      await api.put(`/api/vendor-categories/${cat.id}`, {
+        ...cat,
+        active: !cat.active
+      });
+      fetchCategories();
+    } catch (error) {
+      console.error("Failed to toggle category status", error);
+    }
+  };
+
+  const handleDeleteCategory = async (id) => {
+    if (window.confirm('Are you sure you want to delete this category?')) {
+      try {
+        await api.delete(`/api/vendor-categories/${id}`);
+        fetchCategories();
+      } catch (error) {
+        console.error("Failed to delete category", error);
+      }
+    }
+  };
+
+  const handleEditCategoryName = async (cat) => {
+    const newName = window.prompt("Enter new category name:", cat.name);
+    if (newName && newName.trim() !== "" && newName !== cat.name) {
+      try {
+        await api.put(`/api/vendor-categories/${cat.id}`, {
+          ...cat,
+          name: newName.trim()
+        });
+        fetchCategories();
+      } catch (error) {
+        console.error("Failed to edit category", error);
+      }
+    }
+  };
+
   const handleEditVendor = async (e) => {
     e.preventDefault();
     try {
@@ -297,7 +335,7 @@ const Vendors = () => {
           </button>
           <button onClick={() => setIsAddCategoryOpen(true)} className="btn-secondary flex items-center shrink-0">
             <Plus size={16} className="mr-2" />
-            Add Category
+            Manage Categories
           </button>
           <button onClick={() => setIsAddVendorOpen(true)} className="btn-primary flex items-center shrink-0">
             <Plus size={16} className="mr-2" />
@@ -769,24 +807,61 @@ const Vendors = () => {
         )}
       </Modal>
 
-      <Modal isOpen={isAddCategoryOpen} onClose={() => setIsAddCategoryOpen(false)} title="Create New Category">
-        <form className="space-y-4" onSubmit={handleAddCategory}>
+      <Modal isOpen={isAddCategoryOpen} onClose={() => setIsAddCategoryOpen(false)} title="Manage Categories">
+        <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-1">Category Name *</label>
-            <input 
-              type="text" 
-              className="input-field" 
-              required 
-              placeholder="e.g. Facilities Management" 
-              value={newCategoryName} 
-              onChange={(e) => setNewCategoryName(e.target.value)} 
-            />
+            <label className="block text-sm font-medium text-slate-300 mb-2">Existing Categories</label>
+            <div className="max-h-48 overflow-y-auto custom-scrollbar border border-slate-700 rounded-lg p-2 bg-slate-900/50">
+              {categories.length > 0 ? (
+                <ul className="space-y-2">
+                  {categories.map(cat => (
+                    <li key={cat.id} className="text-slate-300 text-sm p-2 hover:bg-slate-800 rounded flex justify-between items-center">
+                      <span className="font-medium">{cat.name}</span>
+                      <div className="flex items-center gap-3">
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full uppercase tracking-wide font-medium ${cat.active ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-500/20 text-slate-400'}`}>
+                          {cat.active ? 'Active' : 'Inactive'}
+                        </span>
+                        <div className="flex gap-2">
+                          <button type="button" onClick={() => handleToggleCategoryStatus(cat)} className="text-slate-400 hover:text-cyan-400" title={cat.active ? "Deactivate" : "Activate"}>
+                            <ShieldCheck size={14} />
+                          </button>
+                          <button type="button" onClick={() => handleEditCategoryName(cat)} className="text-slate-400 hover:text-blue-400" title="Edit Name">
+                            <Edit2 size={14} />
+                          </button>
+                          <button type="button" onClick={() => handleDeleteCategory(cat.id)} className="text-slate-400 hover:text-rose-400" title="Delete Category">
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-slate-500 text-sm text-center py-4">No categories added yet.</p>
+              )}
+            </div>
           </div>
-          <div className="pt-4 flex justify-end gap-3">
-            <button type="button" onClick={() => setIsAddCategoryOpen(false)} className="btn-secondary">Cancel</button>
-            <button type="submit" className="btn-primary">Create Category</button>
+          
+          <form className="space-y-4 border-t border-slate-700/50 pt-4" onSubmit={handleAddCategory}>
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-1">Add New Category *</label>
+              <div className="flex gap-2">
+                <input 
+                  type="text" 
+                  className="input-field flex-1" 
+                  required 
+                  placeholder="e.g. Facilities Management" 
+                  value={newCategoryName} 
+                  onChange={(e) => setNewCategoryName(e.target.value)} 
+                />
+                <button type="submit" className="btn-primary whitespace-nowrap px-4 py-2">Add</button>
+              </div>
+            </div>
+          </form>
+          <div className="pt-2 flex justify-end">
+            <button type="button" onClick={() => setIsAddCategoryOpen(false)} className="btn-secondary">Close</button>
           </div>
-        </form>
+        </div>
       </Modal>
 
       <Modal isOpen={isFiltersOpen} onClose={() => setIsFiltersOpen(false)} title="Advanced Filters">

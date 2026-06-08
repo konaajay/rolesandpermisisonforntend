@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import EntityListPage from '../components/EntityListPage';
+import SettingsNav from '../components/SettingsNav';
 
 export default function BranchList() {
   const navigate = useNavigate();
@@ -36,6 +37,7 @@ export default function BranchList() {
   return (
     <>
       {toast && <div className={`position-fixed top-0 end-0 m-3 alert alert-${toast.type === 'success' ? 'success' : 'danger'} shadow-sm border-0 small`} style={{ zIndex: 9999 }}>{toast.msg}</div>}
+      <SettingsNav />
       <EntityListPage title="Branches" description="Manage office locations and geofencing"
         addLabel="+ Add Branch" addRoute="/hrms/branches/create"
         searchValue={search} onSearchChange={setSearch}

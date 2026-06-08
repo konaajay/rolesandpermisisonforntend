@@ -19,6 +19,11 @@ export default function UserManager() {
   const [supervisors, setSupervisors] = useState([]);
   const [editingId, setEditingId] = useState(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  
+  const [availableModules, setAvailableModules] = useState([]);
+  const [availablePermissions, setAvailablePermissions] = useState([]);
+  const [selectedModules, setSelectedModules] = useState([]);
+  const [selectedPermissions, setSelectedPermissions] = useState([]);
 
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState(null);
@@ -50,10 +55,25 @@ export default function UserManager() {
     }
   };
 
+  const fetchModulesAndPermissions = async (signal) => {
+    try {
+      const [modulesRes, permsRes] = await Promise.all([
+          api.get('/tenants/current/modules', { signal }),
+          api.get('/permissions', { signal })
+      ]);
+      setAvailableModules(modulesRes.data || []);
+      setAvailablePermissions(permsRes.data || []);
+    } catch (err) {
+      if (err.name === 'CanceledError') return;
+      console.error('Error fetching modules and permissions:', err);
+    }
+  };
+
   useEffect(() => {
     const controller = new AbortController();
     fetchUsers(controller.signal);
     fetchRoles(controller.signal);
+    fetchModulesAndPermissions(controller.signal);
 
     return () => {
       controller.abort();
@@ -99,6 +119,22 @@ export default function UserManager() {
     };
   }, [selectedRoleId]);
 
+  const handleModuleToggle = (moduleName) => {
+      if (selectedModules.includes(moduleName)) {
+          setSelectedModules(selectedModules.filter(m => m !== moduleName));
+      } else {
+          setSelectedModules([...selectedModules, moduleName]);
+      }
+  };
+
+  const handlePermissionToggle = (permissionId) => {
+      if (selectedPermissions.includes(permissionId)) {
+          setSelectedPermissions(selectedPermissions.filter(p => p !== permissionId));
+      } else {
+          setSelectedPermissions([...selectedPermissions, permissionId]);
+      }
+  };
+
   const handleSave = async (e) => {
     e.preventDefault();
     setMessage(null);
@@ -114,6 +150,8 @@ export default function UserManager() {
       roleId: selectedRoleId ? parseInt(selectedRoleId, 10) : null,
       supervisorUserId: supervisorUserId ? parseInt(supervisorUserId, 10) : null,
       profileData,
+      modules: selectedModules,
+      permissionIds: selectedPermissions
     };
 
     try {
@@ -139,6 +177,8 @@ export default function UserManager() {
       setProfileData({});
       setDynamicFields([]);
       setSupervisors([]);
+      setSelectedModules([]);
+      setSelectedPermissions([]);
       setEditingId(null);
       setIsDrawerOpen(false);
 
@@ -160,6 +200,8 @@ export default function UserManager() {
     setSupervisorUserId(user.supervisorUserId || '');
     setGender(user.gender || 'MALE');
     setProfileData(user.profileData || {});
+    setSelectedModules(user.modules || []);
+    setSelectedPermissions(user.permissionIds || []);
     setIsDrawerOpen(true);
   };
 
@@ -207,6 +249,8 @@ export default function UserManager() {
     setProfileData({});
     setDynamicFields([]);
     setSupervisors([]);
+    setSelectedModules([]);
+    setSelectedPermissions([]);
   };
 
   return (
@@ -359,6 +403,52 @@ export default function UserManager() {
                 </select>
               </div>
             )}
+          </div>
+
+          <h6 className="fw-bold mb-3 border-top pt-3">User-Level Modules</h6>
+          <div className="row g-3 mb-4">
+              {availableModules.map(mod => {
+                  const modName = mod.moduleName || mod;
+                  return (
+                      <div className="col-md-6" key={modName}>
+                          <div className="form-check">
+                              <input 
+                                  className="form-check-input" 
+                                  type="checkbox" 
+                                  id={`mod-${modName}`}
+                                  checked={selectedModules.includes(modName)}
+                                  onChange={() => handleModuleToggle(modName)}
+                              />
+                              <label className="form-check-label small" htmlFor={`mod-${modName}`}>
+                                  {modName}
+                              </label>
+                          </div>
+                      </div>
+                  );
+              })}
+          </div>
+
+          <h6 className="fw-bold mb-3 border-top pt-3">User-Level Permissions</h6>
+          <div className="border rounded p-2 mb-4" style={{maxHeight: '200px', overflowY: 'auto'}}>
+              {availablePermissions
+                  .filter(p => selectedModules.includes(p.module) || selectedModules.length === 0)
+                  .map(perm => (
+                  <div className="form-check mb-1" key={perm.id}>
+                      <input 
+                          className="form-check-input" 
+                          type="checkbox" 
+                          id={`perm-${perm.id}`}
+                          checked={selectedPermissions.includes(perm.id)}
+                          onChange={() => handlePermissionToggle(perm.id)}
+                      />
+                      <label className="form-check-label small text-secondary" htmlFor={`perm-${perm.id}`}>
+                          <span className="fw-medium text-dark">[{perm.module}]</span> {perm.action} - {perm.description}
+                      </label>
+                  </div>
+              ))}
+              {availablePermissions.length > 0 && selectedModules.length > 0 && availablePermissions.filter(p => selectedModules.includes(p.module)).length === 0 && (
+                  <p className="text-muted small m-0">No permissions found for the selected modules.</p>
+              )}
           </div>
 
           {dynamicFields.length > 0 && (

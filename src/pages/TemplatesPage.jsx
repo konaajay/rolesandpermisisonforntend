@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import EntityListPage from '../components/EntityListPage';
 import { usePermissions } from '../auth/usePermissions';
+import SettingsNav from '../components/SettingsNav';
 
 const PLACEHOLDERS = [
   '{{COMPANY_NAME}}', '{{COMPANY_LOGO}}', '{{COMPANY_ADDRESS}}',
@@ -182,6 +183,7 @@ export default function TemplatesPage() {
 
   return (
     <>
+      <SettingsNav />
       <EntityListPage
         title="Document & Certificate Templates"
         description="Manage HTML templates for Offer Letters, Relieving Letters, and Certificates"

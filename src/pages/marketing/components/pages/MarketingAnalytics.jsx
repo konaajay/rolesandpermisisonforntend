@@ -47,7 +47,7 @@ const MarketingAnalytics = () => {
         }
     };
 
-    const totalClicks = funnelStats.CLICK || 0;
+    const totalClicks = (funnelStats.CLICK || 0) + (funnelStats.PAGE_VIEW || 0);
     const totalLeads = funnelStats.SIGNUP || 0;
     const totalConversions = funnelStats.PURCHASE || 0;
     const totalCampaigns = Object.values(campaignStats).reduce((a, b) => a + b, 0);
@@ -70,7 +70,7 @@ const MarketingAnalytics = () => {
                         <option value="ALL">All Modules</option>
                         <option value="CRM">CRM</option>
                         <option value="HRMS">HRMS</option>
-                        <option value="AFFILIATE">Affiliate</option>
+
                         <option value="LMS">LMS</option>
                         <option value="VENDOR">Vendor</option>
                     </select>

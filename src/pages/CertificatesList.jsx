@@ -3,6 +3,7 @@ import api from '../services/api';
 import EntityListPage from '../components/EntityListPage';
 import Select from 'react-select';
 import JoditEditor from 'jodit-react';
+import SettingsNav from '../components/SettingsNav';
 
 export default function CertificatesList() {
   const [certificates, setCertificates] = useState([]);
@@ -133,6 +134,7 @@ export default function CertificatesList() {
 
   return (
     <>
+      <SettingsNav />
       <EntityListPage
         title="Employee Documents & Certificates"
         description="Generate, view, and revoke documents and certificates for employees."

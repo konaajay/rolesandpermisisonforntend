@@ -12,13 +12,7 @@ apiClient.interceptors.request.use((config) => {
     const isValid = (val) => val && val !== 'null' && val !== 'undefined';
 
     const token = localStorage.getItem(AUTH_TOKEN_KEY);
-    const url = config.url || '';
-    const isAffiliateRequest = url.includes('/affiliate') ||
-        url.includes('/admin/affiliate') ||
-        url.includes('/admin/leads') ||
-        url.includes('/admin/sales');
-
-    if (isValid(token) && !isAffiliateRequest) {
+    if (isValid(token)) {
         config.headers.Authorization = `Bearer ${token}`;
     }
 

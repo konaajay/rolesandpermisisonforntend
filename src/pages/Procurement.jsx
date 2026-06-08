@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import api from '../services/api';
 import { motion } from 'framer-motion';
 import { Package, Plus, Edit2, Trash2, User, DollarSign, CalendarDays } from 'lucide-react';
@@ -21,7 +21,7 @@ const Procurement = () => {
     try {
       // Re-using the purchase-orders endpoint for now, but treating them as single assets
       const res = await api.get('/api/purchase-orders');
-      if (res.data.success) {
+      if (res.data?.data !== undefined) {
         setAssets(res.data.data);
       }
     } catch (e) { console.error("Error fetching assets", e); }
@@ -29,8 +29,11 @@ const Procurement = () => {
 
   const fetchVendors = async () => {
     try {
-      const response = await api.get('/api/vendors');
-      if (response.data.success) setVendors(response.data.data.content || response.data.data);
+      const response = await api.get('/api/vendors?size=100');
+      if (response.data && response.data.data) {
+        const vendorList = response.data.data.content || response.data.data || [];
+        setVendors(vendorList);
+      }
     } catch (error) { console.error("Error fetching vendors", error); }
   };
 

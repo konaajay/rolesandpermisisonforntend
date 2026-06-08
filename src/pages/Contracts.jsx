@@ -1,13 +1,9 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import api from '../services/api';
 import { motion } from 'framer-motion';
-import { FileSignature, Calendar, AlertCircle, Plus, Eye, Edit2, Trash2 } from 'lucide-react';
+import { FileSignature, Calendar, AlertCircle, Plus, Eye, Edit2, Trash2, Download, Upload } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
 import Modal from '../components/Modal';
-
-import { useEffect } from 'react';
-
-
 const statusBadge = {
   Active:  'bg-emerald-500/10 text-emerald-400 border-emerald-500/30',
   Expired: 'bg-slate-500/10 text-slate-400 border-slate-500/30',
@@ -25,18 +21,23 @@ const Contracts = () => {
   const [selected,   setSelected]   = useState(null);
   const [editContract, setEditContract] = useState(null);
   const [newContract, setNewContract] = useState({ title: '', vendorId: '', amount: '', startDate: '', expires: '', notes: '' });
+  const [selectedFile, setSelectedFile] = useState(null);
+  const fileInputRef = useRef(null);
 
   const fetchContracts = async () => {
     try {
       const res = await api.get('/api/vendor-contracts');
-      if (res.data.success) setContracts(res.data.data);
+      if (res.data?.data !== undefined) setContracts(res.data.data);
     } catch (e) { console.error("Error fetching contracts", e); }
   };
 
   const fetchVendors = async () => {
     try {
-      const response = await api.get('/api/vendors');
-      if (response.data.success) setVendors(response.data.data.content || response.data.data);
+      const response = await api.get('/api/vendors?size=100');
+      if (response.data && response.data.data) {
+        const vendorList = response.data.data.content || response.data.data || [];
+        setVendors(vendorList);
+      }
     } catch (error) { console.error("Error fetching vendors", error); }
   };
 
@@ -62,9 +63,19 @@ const Contracts = () => {
     e.preventDefault();
     try {
       const payload = { ...newContract, status: 'Active' };
-      await api.post('/api/vendor-contracts', payload);
+      const res = await api.post('/api/vendor-contracts', payload);
+      
+      if (res.data?.data?.id && selectedFile) {
+        const formData = new FormData();
+        formData.append('file', selectedFile);
+        await api.post(`/api/vendor-contracts/${res.data.data.id}/upload`, formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
+      }
+
       fetchContracts();
       setNewContract({ title: '', vendorId: '', amount: '', startDate: '', expires: '', notes: '' });
+      setSelectedFile(null);
       setIsAddOpen(false);
     } catch (e) { console.error("Error creating contract", e); }
   };
@@ -73,9 +84,19 @@ const Contracts = () => {
     e.preventDefault();
     try {
       await api.put(`/api/vendor-contracts/${editContract.id}`, editContract);
+      
+      if (selectedFile) {
+        const formData = new FormData();
+        formData.append('file', selectedFile);
+        await api.post(`/api/vendor-contracts/${editContract.id}/upload`, formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
+      }
+
       fetchContracts();
       setIsEditOpen(false);
       setEditContract(null);
+      setSelectedFile(null);
     } catch (e) { console.error("Error updating contract", e); }
   };
 
@@ -112,7 +133,7 @@ const Contracts = () => {
                     <div className="p-3 bg-cyan-500/10 text-cyan-400 rounded-lg mr-4 shrink-0"><FileSignature size={22} /></div>
                     <div>
                       <h4 className="font-medium text-slate-200">{c.title}</h4>
-                      <p className="text-sm text-slate-400">{c.vendorName} · {c.amount}</p>
+                      <p className="text-sm text-slate-400">{c.vendorName} Â· {c.amount}</p>
                     </div>
                   </div>
                   <div className="flex sm:flex-col items-center sm:items-end gap-3 sm:gap-1 ml-14 sm:ml-0">
@@ -150,7 +171,7 @@ const Contracts = () => {
             {expiringContract ? (
               <div className="bg-rose-500/10 border border-rose-500/20 p-4 rounded-xl">
                 <h4 className="font-medium text-rose-300 text-sm">Expiring Soon</h4>
-                <p className="text-slate-300 text-sm mt-1">{expiringContract.vendorName} — {expiringContract.title}</p>
+                <p className="text-slate-300 text-sm mt-1">{expiringContract.vendorName} â€” {expiringContract.title}</p>
                 <p className="text-xs text-slate-500 mt-0.5">Expires {expiringContract.expires}</p>
                 <button
                   onClick={() => { openEdit({ ...expiringContract, status: 'Renewed' }); }}
@@ -166,7 +187,7 @@ const Contracts = () => {
         </div>
       </div>
 
-      {/* ── View Contract Modal ── */}
+      {/* â”€â”€ View Contract Modal â”€â”€ */}
       <Modal isOpen={isViewOpen} onClose={() => setIsViewOpen(false)} title="Contract Details">
         {selected && (
           <div className="space-y-5">
@@ -188,6 +209,13 @@ const Contracts = () => {
                 <p className="text-sm text-slate-300">{selected.notes}</p>
               </div>
             )}
+            {selected.documentUrl && (
+              <div className="mt-4">
+                <a href={selected.documentUrl} target="_blank" rel="noreferrer" className="flex items-center justify-center gap-2 w-full py-2 bg-emerald-500/10 text-emerald-400 rounded-lg border border-emerald-500/30 hover:bg-emerald-500/20 transition-colors">
+                  <Download size={16} /> Download Contract Document
+                </a>
+              </div>
+            )}
             <div className="pt-2 flex justify-between items-center border-t border-slate-700/50">
               <button onClick={() => handleDelete(selected.id)} className="flex items-center gap-2 text-sm text-rose-400 hover:text-rose-300 hover:bg-rose-400/10 px-3 py-2 rounded-lg transition-colors">
                 <Trash2 size={15} /> Delete
@@ -201,7 +229,7 @@ const Contracts = () => {
         )}
       </Modal>
 
-      {/* ── Edit Contract Modal ── */}
+      {/* â”€â”€ Edit Contract Modal â”€â”€ */}
       {editContract && (
         <Modal isOpen={isEditOpen} onClose={() => { setIsEditOpen(false); setEditContract(null); }} title="Edit Contract">
           <form className="space-y-4" onSubmit={handleEditSave}>
@@ -239,6 +267,17 @@ const Contracts = () => {
                 <label className="block text-sm font-medium text-slate-300 mb-1">Notes</label>
                 <textarea rows={3} className="input-field resize-none" value={editContract.notes} onChange={(e) => setEditContract({ ...editContract, notes: e.target.value })} />
               </div>
+              <div className="col-span-2">
+                <label className="block text-sm font-medium text-slate-300 mb-1">Upload New Document (Optional)</label>
+                <div className="flex items-center gap-3">
+                  <input type="file" ref={fileInputRef} className="hidden" onChange={(e) => setSelectedFile(e.target.files[0])} />
+                  <button type="button" onClick={() => fileInputRef.current?.click()} className="btn-secondary text-xs py-1.5 flex items-center">
+                    <Upload size={14} className="mr-2" /> Choose File
+                  </button>
+                  {selectedFile && <span className="text-xs text-slate-400">{selectedFile.name}</span>}
+                  {!selectedFile && editContract.documentUrl && <span className="text-xs text-cyan-400">Current document exists</span>}
+                </div>
+              </div>
             </div>
             <div className="pt-4 flex justify-end gap-3 border-t border-slate-700/50">
               <button type="button" onClick={() => { setIsEditOpen(false); setEditContract(null); }} className="btn-secondary">Cancel</button>
@@ -248,7 +287,7 @@ const Contracts = () => {
         </Modal>
       )}
 
-      {/* ── Add Contract Modal ── */}
+      {/* â”€â”€ Add Contract Modal â”€â”€ */}
       <Modal isOpen={isAddOpen} onClose={() => setIsAddOpen(false)} title="New Contract">
         <form className="space-y-4" onSubmit={handleAdd}>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -278,6 +317,16 @@ const Contracts = () => {
             <div className="col-span-2">
               <label className="block text-sm font-medium text-slate-300 mb-1">Notes</label>
               <textarea rows={3} className="input-field resize-none" placeholder="Any special terms or notes..." value={newContract.notes} onChange={(e) => setNewContract({ ...newContract, notes: e.target.value })} />
+            </div>
+            <div className="col-span-2">
+              <label className="block text-sm font-medium text-slate-300 mb-1">Upload Contract Document</label>
+              <div className="flex items-center gap-3">
+                <input type="file" ref={fileInputRef} className="hidden" onChange={(e) => setSelectedFile(e.target.files[0])} />
+                <button type="button" onClick={() => fileInputRef.current?.click()} className="btn-secondary text-xs py-1.5 flex items-center">
+                  <Upload size={14} className="mr-2" /> Choose File
+                </button>
+                {selectedFile && <span className="text-xs text-slate-400">{selectedFile.name}</span>}
+              </div>
             </div>
           </div>
           <div className="pt-4 flex justify-end gap-3 border-t border-slate-700/50">

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { getLandingPages, getTrackedLinks, createTrackedLink, deleteTrackedLink } from '../../services/api';
+import { usePermissions } from '../../../../auth/usePermissions';
 
 import {
     LuInstagram,
@@ -20,6 +21,7 @@ import {
 import './SocialLinkGenerator.css';
 
 const SocialLinkGenerator = () => {
+    const { hasPermission } = usePermissions();
     const [selectedSources, setSelectedSources] = useState(new Set(['instagram']));
     const [config, setConfig] = useState({
         landingSlug: '',
@@ -241,13 +243,15 @@ const SocialLinkGenerator = () => {
                                     ))}
                                 </div>
                             </div>
-                            <button 
-                                className="btn btn-primary w-100 py-3 fw-bold rounded-4 d-flex align-items-center justify-content-center shadow mt-5" 
-                                onClick={openModal} 
-                                disabled={loading || !config.landingSlug || selectedSources.size === 0}
-                            >
-                                Configure Campaign Tracking <LuRocket className="ms-2" />
-                            </button>
+                            {hasPermission('MARKETING_CREATE') && (
+                                <button 
+                                    className="btn btn-primary w-100 py-3 fw-bold rounded-4 d-flex align-items-center justify-content-center shadow mt-5" 
+                                    onClick={openModal} 
+                                    disabled={loading || !config.landingSlug || selectedSources.size === 0}
+                                >
+                                    Configure Campaign Tracking <LuRocket className="ms-2" />
+                                </button>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -357,9 +361,11 @@ const SocialLinkGenerator = () => {
                                             <a href={`/landing/${group.slug}`} target="_blank" className="btn btn-sm btn-outline-primary border-0 bg-light-hover rounded-circle p-2">
                                                 <LuExternalLink size={16}/>
                                             </a>
-                                            <button className="btn btn-sm btn-outline-danger border-0 bg-light-hover rounded-circle p-2" onClick={() => deleteGroup(group.slug)}>
-                                                <LuTrash2 size={16}/>
-                                            </button>
+                                            {hasPermission('MARKETING_DELETE') && (
+                                                <button className="btn btn-sm btn-outline-danger border-0 bg-light-hover rounded-circle p-2" onClick={() => deleteGroup(group.slug)}>
+                                                    <LuTrash2 size={16}/>
+                                                </button>
+                                            )}
                                         </div>
                                     </td>
                                 </tr>

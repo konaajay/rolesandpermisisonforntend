@@ -12,6 +12,13 @@ import RegisterUser from './pages/RegisterUser';
 import Unauthorized from './pages/Unauthorized';
 import Dashboard from './pages/Dashboard';
 
+const Placeholder = ({ title }) => (
+  <div className="p-6 bg-white rounded-lg shadow-sm border border-slate-200 m-6">
+    <h2 className="text-xl font-semibold mb-2">{title}</h2>
+    <p className="text-slate-500">This module is currently under development.</p>
+  </div>
+);
+
 // Users
 import UserList from './pages/UserList';
 import UserForm from './pages/UserForm';
@@ -52,6 +59,12 @@ import CompanyProfilePage from './pages/CompanyProfilePage';
 import CertificatesList from './pages/CertificatesList';
 import PublicVerificationPage from './pages/PublicVerificationPage';
 
+// Settings — Entities & Departments
+import BusinessEntityList from './pages/BusinessEntityList';
+import BusinessEntityForm from './pages/BusinessEntityForm';
+import DepartmentList from './pages/DepartmentList';
+import DepartmentForm from './pages/DepartmentForm';
+
 
 import { useAppStore } from './store/useAppStore';
 import MainLayout from './layouts/MainLayout';
@@ -66,9 +79,7 @@ import Billing from './pages/Billing';
 import Receipt from './pages/Receipt';
 import VendorPortal from './pages/VendorPortal';
 
-// Affiliate & Marketing
-import Affiliates from './pages/Affiliates/Affiliates';
-import AffiliatePortal from './pages/Affiliates/AffiliatePortal';
+// Marketing
 import MarketingApp from './pages/marketing/App';
 import LandingPage from './pages/marketing/components/pages/LandingPage';
 const StaffProtectedRoute = ({ children }) => {
@@ -138,54 +149,73 @@ const AppContent = () => {
               {/* ── Dashboard ── */}
               <Route path="/" element={<ProtectedRoute element={<Dashboard />} />} />
 
-              {/* ── Users ── */}
-              <Route path="/users" element={<ProtectedRoute element={<UserList />} permission="USER_VIEW" />} />
-              <Route path="/users/create" element={<ProtectedRoute element={<UserForm />} permission="USER_CREATE" />} />
-              <Route path="/users/edit/:id" element={<ProtectedRoute element={<UserForm />} permission="USER_UPDATE" />} />
-
-              {/* ── Roles ── */}
-              <Route path="/roles" element={<ProtectedRoute element={<RoleList />} permission="ROLE_CREATE" />} />
-              <Route path="/roles/create" element={<ProtectedRoute element={<RoleForm />} permission="ROLE_CREATE" />} />
-              <Route path="/roles/edit/:id" element={<ProtectedRoute element={<RoleForm />} permission="ROLE_CREATE" />} />
-
-              {/* ── Permissions & hierarchy ── */}
-              <Route path="/permissions" element={<ProtectedRoute element={<Permissions />} permission="PERMISSION_CREATE" />} />
-              <Route path="/role-mapping" element={<ProtectedRoute element={<RoleMapping />} permission="ROLE_CREATE" />} />
-              <Route path="/role-hierarchy" element={<ProtectedRoute element={<RoleHierarchy />} />} />
-
               {/* ── Tenants (Platform Admin) ── */}
               <Route path="/tenants" element={<ProtectedRoute element={<TenantsList />} permission="TENANT_VIEW" />} />
               <Route path="/tenants/:id" element={<ProtectedRoute element={<TenantDetails />} permission="TENANT_VIEW" />} />
               <Route path="/create-tenant" element={<ProtectedRoute element={<CreateTenant />} permission="TENANT_CREATE" />} />
+              <Route path="/tenant-settings" element={<ProtectedRoute element={<Placeholder title="Tenant Settings" />} permission="TENANT_SETTINGS_VIEW" />} />
+              <Route path="/tenant-modules" element={<ProtectedRoute element={<Placeholder title="Tenant Modules" />} permission="TENANT_MODULES_VIEW" />} />
+              <Route path="/settings/billing" element={<ProtectedRoute element={<Billing />} permission="SUBSCRIPTION_MANAGE" />} />
 
-              {/* ── Settings ── */}
-              <Route path="/settings/company-profile" element={<ProtectedRoute element={<CompanyProfilePage />} />} />
-              <Route path="/settings/id-generation" element={<ProtectedRoute element={<IdGenerationSettings />} />} />
-              <Route path="/settings/templates" element={<ProtectedRoute element={<TemplatesPage />} />} />
-              <Route path="/settings/templates/create" element={<ProtectedRoute element={<TemplateFormPage />} />} />
-              <Route path="/settings/templates/edit/:id" element={<ProtectedRoute element={<TemplateFormPage />} />} />
-              <Route path="/settings/certificates" element={<ProtectedRoute element={<CertificatesList />} />} />
-              <Route path="/settings/billing" element={<ProtectedRoute element={<Billing />} />} />
-              <Route path="/settings/*" element={<Navigate to="/settings/id-generation" replace />} />
+              {/* ── User & Access Management ── */}
+              <Route path="/users" element={<ProtectedRoute element={<UserList />} permission="USER_VIEW" />} />
+              <Route path="/users/create" element={<ProtectedRoute element={<UserForm />} permission="USER_CREATE" />} />
+              <Route path="/users/edit/:id" element={<ProtectedRoute element={<UserForm />} permission="USER_UPDATE" />} />
+              <Route path="/roles" element={<ProtectedRoute element={<RoleList />} permission="ROLE_VIEW" />} />
+              <Route path="/roles/create" element={<ProtectedRoute element={<RoleForm />} permission="ROLE_CREATE" />} />
+              <Route path="/roles/edit/:id" element={<ProtectedRoute element={<RoleForm />} permission="ROLE_CREATE" />} />
+              <Route path="/permissions" element={<ProtectedRoute element={<Permissions />} permission="PERMISSION_VIEW" />} />
+              <Route path="/role-mapping" element={<ProtectedRoute element={<RoleMapping />} permission="ROLE_PERMISSION_VIEW" />} />
+              <Route path="/role-permissions" element={<ProtectedRoute element={<Placeholder title="Role Permissions" />} permission="ROLE_PERMISSION_VIEW" />} />
+              <Route path="/user-permissions" element={<ProtectedRoute element={<Placeholder title="User Permissions" />} permission="USER_PERMISSION_VIEW" />} />
+              <Route path="/role-hierarchy" element={<ProtectedRoute element={<RoleHierarchy />} permission="ROLE_VIEW" />} />
 
-              {/* ── HRMS ── */}
-              <Route path="/hrms/branches" element={<ProtectedRoute element={<BranchList />} />} />
-              <Route path="/hrms/branches/create" element={<ProtectedRoute element={<BranchForm />} />} />
-              <Route path="/hrms/branches/edit/:id" element={<ProtectedRoute element={<BranchForm />} />} />
+              {/* ── Vendor Management ── */}
+              <Route path="/vendors" element={<ProtectedRoute element={<Vendors />} permission="VENDOR_VIEW" />} />
+              <Route path="/vendor-categories" element={<ProtectedRoute element={<Placeholder title="Vendor Categories" />} permission="VENDOR_VIEW" />} />
+              <Route path="/vendor-settings" element={<ProtectedRoute element={<Placeholder title="Vendor Settings" />} permission="VENDOR_VIEW" />} />
+              <Route path="/vendor-reports" element={<ProtectedRoute element={<Placeholder title="Vendor Reports" />} permission="VENDOR_VIEW" />} />
 
-              <Route path="/hrms/shifts" element={<ProtectedRoute element={<ShiftList />} />} />
-              <Route path="/hrms/shifts/create" element={<ProtectedRoute element={<ShiftForm />} />} />
-              <Route path="/hrms/shifts/edit/:id" element={<ProtectedRoute element={<ShiftForm />} />} />
+              {/* ── Integration Management ── */}
+              <Route path="/integrations" element={<ProtectedRoute element={<Placeholder title="Integrations" />} permission="INTEGRATION_VIEW" />} />
+              <Route path="/api-keys" element={<ProtectedRoute element={<Placeholder title="API Keys" />} permission="INTEGRATION_VIEW" />} />
+              <Route path="/webhooks" element={<ProtectedRoute element={<Placeholder title="Webhooks" />} permission="INTEGRATION_VIEW" />} />
+              <Route path="/integrations/google" element={<ProtectedRoute element={<Placeholder title="Google Integration" />} permission="INTEGRATION_VIEW" />} />
+              <Route path="/integrations/meta" element={<ProtectedRoute element={<Placeholder title="Meta Integration" />} permission="INTEGRATION_VIEW" />} />
+              <Route path="/integrations/whatsapp" element={<ProtectedRoute element={<Placeholder title="WhatsApp Integration" />} permission="INTEGRATION_VIEW" />} />
+              <Route path="/integrations/zapier" element={<ProtectedRoute element={<Placeholder title="Zapier Integration" />} permission="INTEGRATION_VIEW" />} />
+              <Route path="/integrations/zoom" element={<ProtectedRoute element={<Placeholder title="Zoom Integration" />} permission="INTEGRATION_VIEW" />} />
+              <Route path="/integrations/cashfree" element={<ProtectedRoute element={<Placeholder title="Cashfree Integration" />} permission="INTEGRATION_VIEW" />} />
+              <Route path="/integration-logs" element={<ProtectedRoute element={<Placeholder title="Integration Logs" />} permission="INTEGRATION_VIEW" />} />
+              <Route path="/sync-history" element={<ProtectedRoute element={<Placeholder title="Sync History" />} permission="INTEGRATION_VIEW" />} />
 
-              {/* ── CRM ── */}
-              <Route path="/crm/stages" element={<ProtectedRoute element={<LeadStageList />} />} />
-              <Route path="/crm/stages/create" element={<ProtectedRoute element={<LeadStageForm />} />} />
-              <Route path="/crm/stages/edit/:id" element={<ProtectedRoute element={<LeadStageForm />} />} />
+              {/* ── Legacy Settings & Others ── */}
+              <Route path="/settings/company-profile" element={<ProtectedRoute element={<CompanyProfilePage />} permission="COMPANY_PROFILE_VIEW" />} />
+              <Route path="/settings/id-generation" element={<ProtectedRoute element={<IdGenerationSettings />} permission="SETTINGS_MANAGE_ID_FORMATS" />} />
+              <Route path="/settings/templates" element={<ProtectedRoute element={<TemplatesPage />} permission="SETTINGS_MANAGE_TEMPLATES" />} />
+              <Route path="/settings/templates/create" element={<ProtectedRoute element={<TemplateFormPage />} permission="SETTINGS_MANAGE_TEMPLATES" />} />
+              <Route path="/settings/templates/edit/:id" element={<ProtectedRoute element={<TemplateFormPage />} permission="SETTINGS_MANAGE_TEMPLATES" />} />
+              <Route path="/settings/certificates" element={<ProtectedRoute element={<CertificatesList />} permission="SETTINGS_MANAGE_TEMPLATES" />} />
+              <Route path="/settings/entities" element={<ProtectedRoute element={<BusinessEntityList />} permission="COMPANY_PROFILE_VIEW" />} />
+              <Route path="/settings/entities/create" element={<ProtectedRoute element={<BusinessEntityForm />} permission="COMPANY_PROFILE_UPDATE" />} />
+              <Route path="/settings/entities/edit/:id" element={<ProtectedRoute element={<BusinessEntityForm />} permission="COMPANY_PROFILE_UPDATE" />} />
+              <Route path="/settings/departments" element={<ProtectedRoute element={<DepartmentList />} permission="COMPANY_PROFILE_VIEW" />} />
+              <Route path="/settings/departments/create" element={<ProtectedRoute element={<DepartmentForm />} permission="COMPANY_PROFILE_UPDATE" />} />
+              <Route path="/settings/departments/edit/:id" element={<ProtectedRoute element={<DepartmentForm />} permission="COMPANY_PROFILE_UPDATE" />} />
+              <Route path="/settings/*" element={<Navigate to="/settings/company-profile" replace />} />
 
-              {/* ── Affiliate & Marketing ── */}
-              <Route path="/affiliates" element={<ProtectedRoute element={<Affiliates />} />} />
-              <Route path="/affiliate/portal" element={<ProtectedRoute element={<AffiliatePortal />} />} />
-              <Route path="/marketing/*" element={<ProtectedRoute element={<MarketingApp />} />} />
+              <Route path="/hrms/branches" element={<ProtectedRoute element={<BranchList />} permission="COMPANY_PROFILE_VIEW" />} />
+              <Route path="/hrms/branches/create" element={<ProtectedRoute element={<BranchForm />} permission="COMPANY_PROFILE_UPDATE" />} />
+              <Route path="/hrms/branches/edit/:id" element={<ProtectedRoute element={<BranchForm />} permission="COMPANY_PROFILE_UPDATE" />} />
+              <Route path="/hrms/shifts" element={<ProtectedRoute element={<ShiftList />} permission="COMPANY_PROFILE_VIEW" />} />
+              <Route path="/hrms/shifts/create" element={<ProtectedRoute element={<ShiftForm />} permission="COMPANY_PROFILE_UPDATE" />} />
+              <Route path="/hrms/shifts/edit/:id" element={<ProtectedRoute element={<ShiftForm />} permission="COMPANY_PROFILE_UPDATE" />} />
+
+              <Route path="/crm/stages" element={<ProtectedRoute element={<LeadStageList />} permission="COMPANY_PROFILE_VIEW" />} />
+              <Route path="/crm/stages/create" element={<ProtectedRoute element={<LeadStageForm />} permission="COMPANY_PROFILE_UPDATE" />} />
+              <Route path="/crm/stages/edit/:id" element={<ProtectedRoute element={<LeadStageForm />} permission="COMPANY_PROFILE_UPDATE" />} />
+
+              <Route path="/marketing/*" element={<ProtectedRoute element={<MarketingApp />} permission="MARKETING_VIEW" />} />
 
               {/* Fallback */}
               <Route path="*" element={<Navigate to="/" replace />} />

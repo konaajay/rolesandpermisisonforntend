@@ -15,7 +15,7 @@ const LeadForm = ({ courseTitle = "the course", buttonText = "Get Syllabus" }) =
         email: '',
         phone: '',
         referralCode: searchParams.get('ref') || '',
-        affiliateCode: searchParams.get('aff') || ''
+        aff') || ''
     });
     const [status, setStatus] = useState({ type: '', message: '' });
 
@@ -26,7 +26,7 @@ const LeadForm = ({ courseTitle = "the course", buttonText = "Get Syllabus" }) =
             email: '',
             phone: '',
             referralCode: searchParams.get('ref') || '',
-            affiliateCode: searchParams.get('aff') || ''
+            aff') || ''
         });
         setStatus({ type: '', message: '' });
     };
@@ -99,7 +99,7 @@ const LeadForm = ({ courseTitle = "the course", buttonText = "Get Syllabus" }) =
 
             setStatus({ type: 'success', message: 'Success! Your information has been captured. We will contact you soon.' });
             alert('Submitted Successfully!');
-            setFormData({ firstName: '', lastName: '', email: '', phone: '', referralCode: '', affiliateCode: '' });
+            setFormData({ firstName: '', lastName: '', email: '', phone: '', referralCode: '', ' });
         } catch (err) {
             console.error('LeadForm DEBUG Error:', err);
             const errorMsg = err.response?.data?.message 
@@ -170,20 +170,20 @@ const LeadForm = ({ courseTitle = "the course", buttonText = "Get Syllabus" }) =
                         />
                     </div>
 
-                    {(formData.referralCode || formData.affiliateCode) && (
+                    {(formData.referralCode) && (
                         <div className="row g-2 mb-3">
                             {formData.referralCode && (
                                 <div className="col">
                                     <span className="badge bg-light text-dark border p-2">Ref: {formData.referralCode}</span>
                                 </div>
-                            )}
-                            {formData.affiliateCode && (
+                            
+                            
                                 <div className="col">
-                                    <span className="badge bg-light text-dark border p-2">Aff: {formData.affiliateCode}</span>
+
                                 </div>
-                            )}
+                            
                         </div>
-                    )}
+                    
                     
                     <div className="d-grid gap-2 mt-4">
                         <button 
@@ -202,7 +202,7 @@ const LeadForm = ({ courseTitle = "the course", buttonText = "Get Syllabus" }) =
                             {status.type === 'success' && <LuCircleCheck className="me-2" />}
                             {status.message}
                         </div>
-                    )}
+                    
                 </form>
             </div>
         </div>

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
+import UserManagementNav from '../components/UserManagementNav';
 
 export default function Permissions() {
   const [permissions, setPermissions] = useState([]);
@@ -38,6 +39,8 @@ export default function Permissions() {
 
   return (
     <div className="container mt-4">
+      <UserManagementNav />
+
       {message && <div className="alert alert-success">{message}</div>}
       {error && <div className="alert alert-danger">{error}</div>}
 

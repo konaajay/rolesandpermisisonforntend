@@ -1,12 +1,10 @@
 import api from "./api";
 
-/**
- * Lead API Service (v36) - Single Submission
- * Targeting Local Affiliate Service directly
+ * Lead API Service
  */
 export const leadService = {
   createLead: async (data) => {
-    console.log("[LeadService] --- Local Affiliate Submission (v36) ---");
+    console.log("[LeadService] --- Local Submission ---");
     
     // Map Frontend fields to Backend CreateLeadRequest schema
     const payload = {
@@ -20,16 +18,9 @@ export const leadService = {
 
     console.log("[LeadService] Payload:", JSON.stringify(payload, null, 2));
 
-    // Endpoint: /api/affiliates/lead
     try {
-      console.log("[LeadService] Submitting to Affiliate Service (Auth-Free)...");
-      const response = await api.post("/api/affiliates/lead", payload, {
-        headers: {
-          // Force empty Authorization to bypass strict Tomcat 10 header checks
-          // in case a malformed token exists in localStorage
-          "Authorization": "" 
-        }
-      });
+      console.log("[LeadService] Submitting to Lead Service...");
+      const response = await api.post("/leads", payload);
       console.log("[LeadService] Success:", response);
       return response;
     } catch (err) {

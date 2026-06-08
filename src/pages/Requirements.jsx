@@ -25,8 +25,11 @@ const Requirements = () => {
 
   const fetchVendors = async () => {
     try {
-      const response = await api.get('/api/vendors');
-      if (response.data.success) setVendors(response.data.data.content || response.data.data);
+      const response = await api.get('/api/vendors?size=100');
+      if (response.data && response.data.data) {
+        const vendorList = response.data.data.content || response.data.data || [];
+        setVendors(vendorList);
+      }
     } catch (error) { console.error("Error fetching vendors", error); }
   };
 

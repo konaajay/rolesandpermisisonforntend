@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 import { usePermissions } from '../auth/usePermissions';
+import UserManagementNav from '../components/UserManagementNav';
 
 export default function RoleHierarchy() {
   const [roles, setRoles] = useState([]);
@@ -133,6 +134,8 @@ export default function RoleHierarchy() {
           {toast.msg}
         </div>
       )}
+
+      <UserManagementNav />
 
       <h4 className="mb-1">Role Hierarchy</h4>
       <p className="text-muted small mb-4">

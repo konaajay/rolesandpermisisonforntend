@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 import EntityFormPage from '../components/EntityFormPage';
 import { usePermissions } from '../auth/usePermissions';
+import SettingsNav from '../components/SettingsNav';
 
 export default function CompanyProfilePage() {
   const { hasPermission, user } = usePermissions();
@@ -138,16 +139,18 @@ export default function CompanyProfilePage() {
   };
 
   return (
-    <EntityFormPage
-      title="Company Profile"
-      description="Manage your organization's core details, branding, and regional settings"
-      onBack={() => {}}
-      loading={loading}
-      error={error}
-      success={successMsg}
-      onSubmit={handleSave}
-      submitLabel={saving ? 'Saving...' : (formData.companyCode ? 'Update Profile' : 'Save Profile')}
-    >
+    <div>
+      <SettingsNav />
+      <EntityFormPage
+        title="Company Profile"
+        description="Manage your organization's core details, branding, and regional settings"
+        onBack={() => {}}
+        loading={loading}
+        error={error}
+        success={successMsg}
+        onSubmit={handleSave}
+        submitLabel={saving ? 'Saving...' : (formData.companyCode ? 'Update Profile' : 'Save Profile')}
+      >
       <div>
         
         {/* Company Information */}
@@ -351,5 +354,6 @@ export default function CompanyProfilePage() {
 
       </div>
     </EntityFormPage>
+    </div>
   );
 }

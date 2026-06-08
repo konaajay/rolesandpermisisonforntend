@@ -2,8 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { LuMegaphone, LuPlus, LuChartBar, LuLayoutTemplate, LuRefreshCw, LuSearch, LuFilter } from 'react-icons/lu';
 import { getEmailCampaigns, createEmailCampaign } from '../../../services/api';
 import CampaignBuilder from './CampaignBuilder';
+import { usePermissions } from '../../../../../auth/usePermissions';
 
 export default function UniversalCampaignManager() {
+    const { hasPermission } = usePermissions();
     const [view, setView] = useState('LIST'); // LIST, BUILDER, ANALYTICS, TEMPLATES
     const [campaigns, setCampaigns] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -37,8 +39,12 @@ export default function UniversalCampaignManager() {
 
     const renderList = () => {
         const filtered = campaigns.filter(c => {
-            if (filters.moduleType !== 'ALL' && c.moduleType !== filters.moduleType) return false;
-            if (filters.status !== 'ALL' && (c.status || c.emailCampaignStatus) !== filters.status) return false;
+            const modType = c.moduleType || 'CRM';
+            if (filters.moduleType !== 'ALL' && modType !== filters.moduleType) return false;
+            
+            const stat = c.status || c.emailCampaignStatus || 'DRAFT';
+            if (filters.status !== 'ALL' && stat !== filters.status) return false;
+            
             return true;
         });
 
@@ -55,7 +61,7 @@ export default function UniversalCampaignManager() {
                             <option value="CRM">CRM</option>
                             <option value="HRMS">HRMS</option>
                             <option value="LMS">LMS</option>
-                            <option value="AFFILIATE">Affiliate</option>
+
                         </select>
                         <select className="form-select form-select-sm w-auto" value={filters.status} onChange={e => setFilters({...filters, status: e.target.value})}>
                             <option value="ALL">All Status</option>
@@ -125,7 +131,9 @@ export default function UniversalCampaignManager() {
                     {view === 'LIST' && (
                         <>
                             <button className="btn btn-outline-secondary" onClick={loadData}><LuRefreshCw className="me-2"/>Sync</button>
-                            <button className="btn btn-primary shadow-sm" onClick={() => setView('BUILDER')}><LuPlus className="me-2"/>New Campaign</button>
+                            {hasPermission('MARKETING_CREATE') && (
+                                <button className="btn btn-primary shadow-sm" onClick={() => setView('BUILDER')}><LuPlus className="me-2"/>New Campaign</button>
+                            )}
                         </>
                     )}
                 </div>

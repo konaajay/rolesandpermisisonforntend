@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { getLeads } from '../../services/api';
+import { usePermissions } from '../../../../auth/usePermissions';
 
 const LeadDashboard = () => {
+    const { hasPermission } = usePermissions();
     const [leads, setLeads] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [loading, setLoading] = useState(true);
@@ -81,13 +83,15 @@ const LeadDashboard = () => {
                                             <td>{lead.utmCampaign || '-'}</td>
                                             <td>{new Date(lead.createdAt).toLocaleDateString()}</td>
                                             <td className="text-end">
-                                                <a 
-                                                    href={`/admin/users?name=${encodeURIComponent(lead.name)}&email=${encodeURIComponent(lead.email)}&role=Student&phone=${encodeURIComponent(lead.phone || '')}`}
-                                                    className="btn btn-premium-primary btn-sm px-3"
-                                                    style={{ borderRadius: '8px' }}
-                                                >
-                                                    Create Account
-                                                </a>
+                                                {hasPermission('USER_CREATE') && (
+                                                    <a 
+                                                        href={`/users/create?name=${encodeURIComponent(lead.name)}&email=${encodeURIComponent(lead.email)}&role=Student&phone=${encodeURIComponent(lead.phone || '')}`}
+                                                        className="btn btn-premium-primary btn-sm px-3"
+                                                        style={{ borderRadius: '8px' }}
+                                                    >
+                                                        Create Account
+                                                    </a>
+                                                )}
                                             </td>
                                         </tr>
                                     )) : (

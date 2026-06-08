@@ -13,9 +13,7 @@ export default function Unauthorized() {
           </svg>
         </div>
         <h2 className="card-title text-danger mb-3">Access Denied</h2>
-        <p className="card-text text-muted mb-4">
-          You do not have the required permissions or active modules enabled to access this section of the portal.
-        </p>
+
         <div className="d-grid gap-2 d-sm-flex justify-content-sm-center">
           <button 
             onClick={() => navigate('/')} 

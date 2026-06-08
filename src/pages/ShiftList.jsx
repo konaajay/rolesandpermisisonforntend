@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import EntityListPage from '../components/EntityListPage';
+import SettingsNav from '../components/SettingsNav';
 
 const fmt = (t) => t ? t.substring(0, 5) : '—';
 
@@ -42,6 +43,7 @@ export default function ShiftList() {
           {toast.msg}
         </div>
       )}
+      <SettingsNav />
       <EntityListPage
         title="Attendance Shifts"
         description="Define shift timings and break schedules"

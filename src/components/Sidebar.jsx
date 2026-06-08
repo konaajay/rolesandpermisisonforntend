@@ -10,7 +10,6 @@ export default function Sidebar() {
 
   if (!isAuthenticated) return null;
 
-  // exact=true for strict match, exact=false for prefix match
   const isActive = (path, exact = true) => {
     const matched = exact
       ? location.pathname === path
@@ -34,97 +33,86 @@ export default function Sidebar() {
       </div>
 
       <div className="p-4 flex-grow pb-20 overflow-y-auto custom-scrollbar">
+        
+        {/* Dashboard */}
+        <div className="space-y-1">
+            <Link className={isActive('/')} to="/">Dashboard</Link>
+        </div>
+
+        {/* 1. Tenant Management */}
         {isPlatformAdmin && (
           <>
-            <SectionTitle>Platform Dashboard</SectionTitle>
-            <div className="space-y-1">
-              <Link className={isActive('/')} to="/">Dashboard</Link>
-            </div>
-
             <SectionTitle>Tenant Management</SectionTitle>
             <div className="space-y-1">
-              <Link className={isActive('/tenants', false)} to="/tenants">Tenants</Link>
-            </div>
-          </>
-        )}
-
-        {!isPlatformAdmin && (
-          <>
-            <SectionTitle>Tenant Admin</SectionTitle>
-            <div className="space-y-1">
-              <Link className={isActive('/')} to="/">Dashboard</Link>
-            </div>
-          </>
-        )}
-
-        {(hasPermission('USER_VIEW') || hasPermission('ROLE_CREATE') || hasPermission('PERMISSION_CREATE')) && (
-          <>
-            <SectionTitle>Access Control</SectionTitle>
-            <div className="space-y-1">
-              {hasPermission('USER_VIEW') && isModuleEnabled('EMPLOYEE') && <Link className={isActive('/users', false)} to="/users">Users</Link>}
-              {hasPermission('ROLE_CREATE') && <Link className={isActive('/roles', false)} to="/roles">Roles</Link>}
-              {hasPermission('PERMISSION_CREATE') && <Link className={isActive('/permissions')} to="/permissions">Permissions</Link>}
-              {hasPermission('ROLE_CREATE') && <Link className={isActive('/role-mapping')} to="/role-mapping">Role Mapping</Link>}
-              <Link className={isActive('/role-hierarchy')} to="/role-hierarchy">Role Hierarchy</Link>
-            </div>
-          </>
-        )}
-
-        {hasPermission('USER_VIEW') && (
-          <>
-            <SectionTitle>Settings</SectionTitle>
-            <div className="space-y-1">
-              <Link className={isActive('/settings/company-profile', false)} to="/settings/company-profile">Company Profile</Link>
-              <Link className={isActive('/settings/id-generation', false)} to="/settings/id-generation">ID Generation</Link>
-              <Link className={isActive('/settings/templates', false)} to="/settings/templates">Templates</Link>
-              <Link className={isActive('/settings/certificates', false)} to="/settings/certificates">Certificates</Link>
+              {hasPermission('TENANT_VIEW') && <Link className={isActive('/tenants', false)} to="/tenants">Tenants</Link>}
+              {hasPermission('TENANT_SETTINGS_VIEW') && <Link className={isActive('/tenant-settings', false)} to="/tenant-settings">Tenant Settings</Link>}
+              {hasPermission('TENANT_MODULES_VIEW') && <Link className={isActive('/tenant-modules', false)} to="/tenant-modules">Tenant Modules</Link>}
               {(hasPermission('SUBSCRIPTION_MANAGE') || isPlatformAdmin) && (
-                <Link className={isActive('/settings/billing', false)} to="/settings/billing">Billing & Plans</Link>
+                <Link className={isActive('/settings/billing', false)} to="/settings/billing">Subscription</Link>
               )}
             </div>
-
-            {isModuleEnabled('HRMS') && (
-              <>
-                <SectionTitle>HRMS</SectionTitle>
-                <div className="space-y-1">
-                  <Link className={isActive('/hrms/branches', false)} to="/hrms/branches">Branches</Link>
-                  <Link className={isActive('/hrms/shifts', false)} to="/hrms/shifts">Attendance Shifts</Link>
-                </div>
-              </>
-            )}
-
-            {isModuleEnabled('CRM') && (
-              <>
-                <SectionTitle>CRM</SectionTitle>
-                <div className="space-y-1">
-                  <Link className={isActive('/crm/stages', false)} to="/crm/stages">Lead Stages</Link>
-                </div>
-              </>
-            )}
           </>
         )}
 
-        <>
-          <SectionTitle>Affiliate Management</SectionTitle>
-          <div className="space-y-1">
-            <Link className={isActive('/affiliates', false)} to="/affiliates">All Affiliates</Link>
-            <Link className={isActive('/affiliate/portal', false)} to="/affiliate/portal">Partner Portal</Link>
-          </div>
-        </>
+        {/* 2. User & Access Management */}
+        {(hasPermission('USER_VIEW') || hasPermission('ROLE_VIEW') || hasPermission('PERMISSION_VIEW')) && (
+          <>
+            <SectionTitle>User & Access Management</SectionTitle>
+            <div className="space-y-1">
+              {hasPermission('USER_VIEW') && <Link className={isActive('/users', false) || isActive('/roles', false) || isActive('/permissions', false) || isActive('/role-hierarchy', false) ? "block px-4 py-2 mt-1 text-sm rounded transition-colors bg-primary bg-opacity-10 text-primary font-medium" : "block px-4 py-2 mt-1 text-sm text-slate-400 hover:text-slate-100 hover:bg-slate-800 rounded transition-colors"} to="/users">Users & Access</Link>}
+            </div>
+          </>
+        )}
 
-        <>
-          <SectionTitle>Marketing</SectionTitle>
-          <div className="space-y-1">
-            <Link className={isActive('/marketing', false)} to="/marketing">Marketing Hub</Link>
-          </div>
-        </>
+        {/* 3. Vendor Management */}
+        {isModuleEnabled('VENDOR') && hasPermission('VENDOR_VIEW') && (
+          <>
+            <SectionTitle>Vendor Management</SectionTitle>
+            <div className="space-y-1">
+              <Link className={isActive('/vendor-dashboard', false)} to="/vendor-dashboard">Vendor Portal</Link>
+            </div>
+          </>
+        )}
 
+        {/* 4. Integration Management */}
+        {isModuleEnabled('INTEGRATION') && hasPermission('INTEGRATION_VIEW') && (
+          <>
+            <SectionTitle>Integration Management</SectionTitle>
+            <div className="space-y-1">
+              <Link className={isActive('/integrations', true)} to="/integrations">Integrations</Link>
+              <Link className={isActive('/api-keys', false)} to="/api-keys">API Keys</Link>
+              <Link className={isActive('/webhooks', false)} to="/webhooks">Webhooks</Link>
+              <Link className={isActive('/integrations/google', false)} to="/integrations/google">Google</Link>
+              <Link className={isActive('/integrations/meta', false)} to="/integrations/meta">Meta</Link>
+              <Link className={isActive('/integrations/whatsapp', false)} to="/integrations/whatsapp">WhatsApp</Link>
+              <Link className={isActive('/integrations/zapier', false)} to="/integrations/zapier">Zapier</Link>
+              <Link className={isActive('/integrations/zoom', false)} to="/integrations/zoom">Zoom</Link>
+              <Link className={isActive('/integrations/cashfree', false)} to="/integrations/cashfree">Cashfree</Link>
+              <Link className={isActive('/integration-logs', false)} to="/integration-logs">Integration Logs</Link>
+              <Link className={isActive('/sync-history', false)} to="/sync-history">Sync History</Link>
+            </div>
+          </>
+        )}
+
+        {/* 5. Marketing Management */}
+        {isModuleEnabled('MARKETING') && hasPermission('MARKETING_VIEW') && (
+          <>
+            <SectionTitle>Marketing Management</SectionTitle>
+            <div className="space-y-1">
+              <Link className={isActive('/marketing', false)} to="/marketing">Marketing Portal</Link>
+            </div>
+          </>
+        )}
+
+        {/* 6. System Settings - single entry point, nav handled by SettingsNav top bar */}
+        {(hasPermission('COMPANY_PROFILE_VIEW') || hasPermission('SETTINGS_MANAGE_TEMPLATES') || hasPermission('SETTINGS_MANAGE_ID_FORMATS')) && (
         <>
-          <SectionTitle>Vendor Management</SectionTitle>
+          <SectionTitle>Settings</SectionTitle>
           <div className="space-y-1">
-            <Link className={isActive('/vendor-dashboard', false)} to="/vendor-dashboard">Vendor Portal</Link>
+            <Link className={isActive('/settings/company-profile', false) || isActive('/settings/id-generation', false) || isActive('/settings/templates', false) || isActive('/settings/certificates', false) || isActive('/hrms/branches', false) || isActive('/hrms/shifts', false) || isActive('/crm/stages', false) ? 'flex items-center px-3 py-2 text-sm font-medium rounded-lg bg-cyan-500/10 text-cyan-400 border-l-2 border-cyan-400' : 'flex items-center px-3 py-2 text-sm font-medium rounded-lg text-slate-400 hover:bg-slate-800 hover:text-slate-100 transition-colors'} to="/settings/company-profile">System Settings</Link>
           </div>
         </>
+        )}
       </div>
     </div>
   );

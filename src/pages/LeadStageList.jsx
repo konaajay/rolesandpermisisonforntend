@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import EntityListPage from '../components/EntityListPage';
+import SettingsNav from '../components/SettingsNav';
 
 const bucketColors = { WON: 'success', LOST: 'danger', ENGAGED: 'primary', UNASSIGNED: 'secondary' };
 
@@ -42,6 +43,7 @@ export default function LeadStageList() {
   return (
     <>
       {toast && <div className={`position-fixed top-0 end-0 m-3 alert alert-${toast.type === 'success' ? 'success' : 'danger'} shadow-sm border-0 small`} style={{ zIndex: 9999 }}>{toast.msg}</div>}
+      <SettingsNav />
       <EntityListPage title="Lead Stages" description="Configure your CRM pipeline stages"
         addLabel="+ Add Stage" addRoute="/crm/stages/create"
         searchValue={search} onSearchChange={setSearch}

@@ -40,6 +40,7 @@ api.interceptors.response.use(
         localStorage.removeItem('tenantCode');
         window.location.href = '/login';
       } else if (error.response.status === 403) {
+        console.error(`[API Interceptor] 403 Forbidden received for URL: ${error.config?.url}. Redirecting to /unauthorized`);
         // Authenticated but unauthorized -> break loop and go to unauthorized page
         if (!error.config?.ignore403 && window.location.pathname !== '/unauthorized') {
           window.location.href = '/unauthorized';

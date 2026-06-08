@@ -5,6 +5,7 @@ import PromoCodes from './PromoCodes';
 import LeadDashboard from './LeadDashboard';
 import UniversalCampaignManager from './universal/UniversalCampaignManager';
 import LandingPageManager from './LandingPageManager';
+import { usePermissions } from '../../../../auth/usePermissions';
 
 import {
     LuChartBar,
@@ -16,15 +17,17 @@ import {
 } from 'react-icons/lu';
 
 const MarketingDashboard = () => {
+    const { hasPermission } = usePermissions();
     const [activeTab, setActiveTab] = useState('campaigns');
 
     const tabs = [
-        { id: 'analytics', label: 'Analytics', icon: LuChartBar },
-        { id: 'social', label: 'Social Booster', icon: LuRocket },
-        { id: 'campaigns', label: 'Campaigns', icon: LuMegaphone },
-        { id: 'pages', label: 'Landing Pages', icon: LuFileCode },
-        { id: 'leads', label: 'Leads', icon: LuUserPlus }
-    ];
+        { id: 'analytics', label: 'Analytics', icon: LuChartBar, requiredPerm: 'MARKETING_ANALYTICS_VIEW' },
+        { id: 'social', label: 'Social Booster', icon: LuRocket, requiredPerm: 'MARKETING_VIEW' },
+        { id: 'campaigns', label: 'Campaigns', icon: LuMegaphone, requiredPerm: 'MARKETING_VIEW' },
+        { id: 'pages', label: 'Landing Pages', icon: LuFileCode, requiredPerm: 'MARKETING_VIEW' },
+        { id: 'coupons', label: 'Promo Codes', icon: LuTicket, requiredPerm: 'MARKETING_VIEW' },
+        { id: 'leads', label: 'Leads', icon: LuUserPlus, requiredPerm: 'MARKETING_VIEW' }
+    ].filter(tab => hasPermission(tab.requiredPerm));
 
     return (
         <div className="bg-light min-vh-100">
@@ -54,6 +57,7 @@ const MarketingDashboard = () => {
                 {activeTab === 'social' && <SocialLinkGenerator />}
                 {activeTab === 'campaigns' && <UniversalCampaignManager />}
                 {activeTab === 'pages' && <LandingPageManager />}
+                {activeTab === 'coupons' && <PromoCodes />}
                 {activeTab === 'leads' && <LeadDashboard />}
             </div>
         </div>

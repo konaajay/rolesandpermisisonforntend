@@ -7,6 +7,8 @@ export default function ProtectedRoute({ element, permission, module }) {
   const { isAuthenticated, loading } = useAuth();
   const { hasPermission, isModuleEnabled } = usePermissions();
 
+  console.log(`[ProtectedRoute] Checking permission: ${permission}. User has permissions:`, usePermissions().permissions);
+
   if (loading) {
     return (
       <div className="container text-center py-5">
@@ -22,10 +24,12 @@ export default function ProtectedRoute({ element, permission, module }) {
   }
 
   if (module && !isModuleEnabled(module)) {
+    console.log(`[ProtectedRoute] Redirecting to /unauthorized because module ${module} is not enabled.`);
     return <Navigate to="/unauthorized" replace />;
   }
 
   if (permission && !hasPermission(permission)) {
+    console.log(`[ProtectedRoute] Redirecting to /unauthorized because permission ${permission} is not granted.`);
     return <Navigate to="/unauthorized" replace />;
   }
 

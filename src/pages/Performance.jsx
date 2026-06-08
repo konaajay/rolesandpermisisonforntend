@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import api from '../services/api';
 import { motion } from 'framer-motion';
 import { 
@@ -17,7 +17,7 @@ const Performance = () => {
     const fetchPerformanceData = async () => {
       try {
         const response = await api.get('/api/vendor-performance');
-        if (response.data.success) {
+        if (response.data && response.data.data) {
           setData(response.data.data);
         }
       } catch (error) {

@@ -18,7 +18,7 @@ export default function Billing() {
     try {
       setLoading(true);
       const res = await api.get('/api/subscriptions');
-      if (res.data && res.data.success) {
+      if (res.data && res.data?.data !== undefined) {
         setHistory(res.data.data);
         if (res.data.data.length > 0) {
           setCurrentPlan(res.data.data[0]); // assuming 0 is latest
@@ -43,7 +43,7 @@ export default function Billing() {
       };
       
       const res = await api.post('/api/subscriptions', req);
-      if (res.data && res.data.success) {
+      if (res.data && res.data?.data !== undefined) {
         alert('Subscription upgraded successfully!');
         fetchHistory();
       }

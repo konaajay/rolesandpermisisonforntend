@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 import EntityListPage from '../components/EntityListPage';
 import EntityFormPage from '../components/EntityFormPage';
+import SettingsNav from '../components/SettingsNav';
 
 export default function IdGenerationSettings() {
   const [viewMode, setViewMode] = useState('LIST'); // 'LIST' or 'FORM'
@@ -93,6 +94,8 @@ export default function IdGenerationSettings() {
 
   if (viewMode === 'FORM') {
     return (
+      <div>
+      <SettingsNav />
       <EntityFormPage
         title={editingId ? 'Edit ID Format' : 'Create ID Format'}
         subtitle="ID Generation Settings"
@@ -190,10 +193,13 @@ export default function IdGenerationSettings() {
           </div>
         </div>
       </EntityFormPage>
+      </div>
     );
   }
 
   return (
+    <div>
+    <SettingsNav />
     <EntityListPage
       title="ID Generation Formats"
       description="Configure auto-generated IDs for various roles."
@@ -245,5 +251,6 @@ export default function IdGenerationSettings() {
         </tbody>
       </table>
     </EntityListPage>
+    </div>
   );
 }

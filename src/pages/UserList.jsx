@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { usePermissions } from '../auth/usePermissions';
 import EntityListPage from '../components/EntityListPage';
+import UserManagementNav from '../components/UserManagementNav';
 
 /* ── helpers ─────────────────────────────────────────────────── */
 const StatusBadge = ({ active }) => (
@@ -76,12 +77,19 @@ export default function UserList() {
     }
   };
 
-  /**
-   * Password reset — currently initiates admin-forced reset.
-   * TODO: Replace with OTP-email flow when OTP infrastructure is ready.
-   */
   const handleResetPassword = async (user) => {
-    showToast('success', `Password reset initiated for ${user.firstName}. OTP flow will be implemented in next sprint.`);
+    const newPassword = window.prompt(`Enter new password for ${user.firstName} (min 8 characters):`);
+    if (!newPassword) return; 
+    if (newPassword.length < 8) {
+      showToast('error', 'Password must be at least 8 characters long');
+      return;
+    }
+    try {
+      await api.post(`/users/${user.id}/reset-password`, { newPassword });
+      showToast('success', `Password reset successfully for ${user.firstName}.`);
+    } catch (err) {
+      showToast('error', err.response?.data?.message || err.response?.data?.error || err.message || 'Failed to reset password');
+    }
   };
 
   /* ── client-side search ──────────────────────────────────── */
@@ -114,6 +122,8 @@ export default function UserList() {
           {toast.msg}
         </div>
       )}
+
+      <UserManagementNav />
 
       <EntityListPage
         title="Users"

@@ -29,18 +29,29 @@ const Invoices = () => {
   const [selected,     setSelected]       = useState(null);
   const [editInvoice,  setEditInvoice]    = useState(null);
   const [newInvoice,   setNewInvoice]     = useState({ vendorId: '', amount: '', poRef: '', dueDate: '', notes: '', requirementId: '' });
+  const [paymentModal, setPaymentModal]   = useState({ open: false, invoice: null, inputValue: '', error: '' });
 
   const fetchInvoices = async () => {
     try {
       const res = await api.get('/api/vendor-invoices');
-      if (res.data.success) setInvoices(res.data.data);
+      if (res.data?.data !== undefined) setInvoices(res.data.data);
     } catch (e) { console.error("Error fetching invoices", e); }
   };
 
   const fetchVendors = async () => {
     try {
-      const response = await api.get('/api/vendors');
-      if (response.data.success) setVendors(response.data.data.content || response.data.data);
+      const response = await api.get('/api/vendors?size=100');
+      const raw = response.data?.data;
+      let vendorList = [];
+      if (Array.isArray(raw)) {
+        vendorList = raw;
+      } else if (raw?.content && Array.isArray(raw.content)) {
+        vendorList = raw.content;
+      } else if (raw) {
+        vendorList = Object.values(raw);
+      }
+      console.log('Vendors loaded:', vendorList.length, vendorList);
+      setVendors(vendorList);
     } catch (error) { console.error("Error fetching vendors", error); }
   };
 
@@ -57,7 +68,7 @@ const Invoices = () => {
     fetchRequirements();
   }, []);
 
-  /* ── helpers ── */
+  /* â”€â”€ helpers â”€â”€ */
   const openView = (inv) => { setSelected(inv); setIsViewOpen(true); };
   const openEdit = (inv) => { setEditInvoice({ ...inv }); setIsViewOpen(false); setIsEditOpen(true); };
 
@@ -73,41 +84,82 @@ const Invoices = () => {
   };
 
   const handleStatusChange = async (id, newStatus) => {
+    if (newStatus === 'Partially Paid') {
+      const inv = invoices.find(i => i.id === id);
+      if (!inv) return;
+      setPaymentModal({ open: true, invoice: inv, inputValue: '', error: '' });
+      return;
+    }
+    await applyStatusChange(id, newStatus, null);
+  };
+
+  const applyStatusChange = async (id, newStatus, partialAmount) => {
     try {
       const invToUpdate = invoices.find(i => i.id === id);
-      if (invToUpdate) {
-        let amountPaid = invToUpdate.amountPaid || 0;
-        let amountPending = invToUpdate.amountPending !== undefined ? invToUpdate.amountPending : invToUpdate.amountValue;
+      if (!invToUpdate) return;
 
-        if (newStatus === 'Partially Paid') {
-          const amt = window.prompt(`Total Amount is ${invToUpdate.amount}. Enter total Amount Paid so far:`, amountPaid);
-          if (amt === null) return;
-          const parsed = parseFloat(amt);
-          if (isNaN(parsed) || parsed < 0) {
-            alert('Invalid amount entered.');
-            return;
-          }
-          amountPaid = parsed;
-          amountPending = invToUpdate.amountValue - amountPaid;
-        } else if (newStatus === 'Paid') {
-          amountPaid = invToUpdate.amountValue;
-          amountPending = 0;
-        }
+      let amountPaid = parseFloat(invToUpdate.amountPaid) || 0;
+      let amountPending = invToUpdate.amountPending !== undefined
+        ? parseFloat(invToUpdate.amountPending)
+        : parseFloat(invToUpdate.amountValue) || 0;
+      let paymentHistory = [];
 
-        await api.put(`/api/vendor-invoices/${id}`, { 
-          ...invToUpdate, 
-          status: newStatus,
-          amountPaid: amountPaid,
-          amountPending: amountPending
+      try {
+        if (invToUpdate.paymentHistory) paymentHistory = JSON.parse(invToUpdate.paymentHistory);
+      } catch (_) {}
+
+      if (newStatus === 'Partially Paid' && partialAmount !== null) {
+        paymentHistory.push({
+          date: new Date().toISOString().split('T')[0],
+          amount: partialAmount,
+          note: `Installment #${paymentHistory.length + 1}`
         });
-        fetchInvoices();
-        setSelected(prev => prev ? { ...prev, status: newStatus, amountPaid, amountPending } : prev);
+        amountPaid = amountPaid + partialAmount;
+        amountPending = parseFloat(invToUpdate.amountValue) - amountPaid;
+        if (amountPending <= 0) { newStatus = 'Paid'; amountPending = 0; }
+      } else if (newStatus === 'Paid') {
+        const remaining = parseFloat(invToUpdate.amountValue) - amountPaid;
+        if (remaining > 0) paymentHistory.push({ date: new Date().toISOString().split('T')[0], amount: remaining, note: 'Final payment' });
+        amountPaid = parseFloat(invToUpdate.amountValue);
+        amountPending = 0;
       }
-    } catch (e) { console.error("Error updating invoice status", e); }
+
+      await api.put(`/api/vendor-invoices/${id}`, {
+        ...invToUpdate,
+        status: newStatus,
+        amountPaid,
+        amountPending,
+        paymentHistory: JSON.stringify(paymentHistory)
+      });
+
+      await fetchInvoices();
+      setSelected(prev => prev ? { ...prev, status: newStatus, amountPaid, amountPending, paymentHistory: JSON.stringify(paymentHistory) } : prev);
+    } catch (e) { console.error('Error updating invoice status', e); }
+  };
+
+  const submitPayment = async () => {
+    const { invoice, inputValue } = paymentModal;
+    const parsed = parseFloat(inputValue);
+    const alreadyPaid = parseFloat(invoice.amountPaid) || 0;
+    const remaining = parseFloat(invoice.amountValue) - alreadyPaid;
+
+    if (isNaN(parsed) || parsed <= 0) {
+      setPaymentModal(p => ({ ...p, error: 'Please enter a valid positive amount.' }));
+      return;
+    }
+    if (parsed > remaining + 0.001) {
+      setPaymentModal(p => ({ ...p, error: `Cannot exceed remaining balance of $${remaining.toFixed(2)}.` }));
+      return;
+    }
+    setPaymentModal({ open: false, invoice: null, inputValue: '', error: '' });
+    await applyStatusChange(invoice.id, 'Partially Paid', parsed);
   };
 
   const handleAddInvoice = async (e) => {
     e.preventDefault();
+    let createdId = null;
+
+    // Step 1: Create the invoice
     try {
       const payload = {
         vendorId: newInvoice.vendorId,
@@ -115,25 +167,35 @@ const Invoices = () => {
         amount: newInvoice.amount,
         date: new Date().toISOString().split('T')[0],
         dueDate: newInvoice.dueDate || 'TBD',
-        poRef: newInvoice.poRef || '—',
+        poRef: newInvoice.poRef || '–',
         status: 'Pending',
         notes: newInvoice.notes || '',
       };
       const res = await api.post('/api/vendor-invoices', payload);
-      
-      if (res.data.success && selectedFile) {
+      if (res.data?.data?.id) createdId = res.data.data.id;
+    } catch (e) {
+      console.error("Error creating invoice", e);
+      return; // stop here only if invoice creation itself failed
+    }
+
+    // Step 2: Upload file (optional — don't block list refresh if it fails)
+    if (createdId && selectedFile) {
+      try {
         const formData = new FormData();
         formData.append('file', selectedFile);
-        await api.post(`/api/vendor-invoices/${res.data.data.id}/upload-receipt`, formData, {
+        await api.post(`/api/vendor-invoices/${createdId}/upload-receipt`, formData, {
           headers: { 'Content-Type': 'multipart/form-data' }
         });
+      } catch (uploadErr) {
+        console.warn("Receipt upload failed (invoice still created):", uploadErr);
       }
+    }
 
-      fetchInvoices();
-      setNewInvoice({ vendorId: '', amount: '', poRef: '', dueDate: '', notes: '', requirementId: '' });
-      setSelectedFile(null);
-      setIsUploadOpen(false);
-    } catch (e) { console.error("Error creating invoice", e); }
+    // Step 3: Always refresh and close
+    fetchInvoices();
+    setNewInvoice({ vendorId: '', amount: '', poRef: '', dueDate: '', notes: '', requirementId: '' });
+    setSelectedFile(null);
+    setIsUploadOpen(false);
   };
 
   const handleEditSave = async (e) => {
@@ -281,7 +343,7 @@ const Invoices = () => {
         </div>
       </div>
 
-      {/* ── View Invoice Modal ── */}
+      {/* â”€â”€ View Invoice Modal â”€â”€ */}
       <Modal isOpen={isViewOpen} onClose={() => setIsViewOpen(false)} title="Invoice Details">
         {selected && (() => {
           const s = statusStyle[selected.status] || statusStyle.Pending;
@@ -297,7 +359,7 @@ const Invoices = () => {
 
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div><p className="text-slate-500 text-xs mb-0.5">Amount</p><p className="text-slate-50 font-bold text-lg">{selected.amount}</p></div>
-                <div><p className="text-slate-500 text-xs mb-0.5">PO Reference</p><p className="text-slate-200 font-mono">{selected.poRef || '—'}</p></div>
+                <div><p className="text-slate-500 text-xs mb-0.5">PO Reference</p><p className="text-slate-200 font-mono">{selected.poRef || 'â€”'}</p></div>
                 <div><p className="text-slate-500 text-xs mb-0.5">Invoice Date</p><p className="text-slate-200">{selected.date}</p></div>
                 <div><p className="text-slate-500 text-xs mb-0.5">Due Date</p><p className="text-slate-200">{selected.dueDate}</p></div>
                 <div><p className="text-slate-500 text-xs mb-0.5">Amount Paid</p><p className="text-emerald-400 font-semibold">{formatCurrency(selected.amountPaid || 0)}</p></div>
@@ -316,6 +378,35 @@ const Invoices = () => {
                   <p className="text-sm text-slate-300">{selected.notes}</p>
                 </div>
               )}
+
+              {/* Payment History Steps */}
+              {selected.paymentHistory && (() => {
+                try {
+                  const steps = JSON.parse(selected.paymentHistory);
+                  if (!steps || steps.length === 0) return null;
+                  return (
+                    <div className="bg-slate-800/30 rounded-lg border border-slate-700/50 overflow-hidden">
+                      <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider px-3 pt-3 pb-2">
+                        Payment Installments ({steps.length})
+                      </p>
+                      <div className="divide-y divide-slate-700/40">
+                        {steps.map((step, idx) => (
+                          <div key={idx} className="flex items-center justify-between px-3 py-2">
+                            <div className="flex items-center gap-2">
+                              <div className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 text-xs flex items-center justify-center font-bold">{idx + 1}</div>
+                              <div>
+                                <p className="text-xs text-slate-300">{step.note}</p>
+                                <p className="text-xs text-slate-500">{step.date}</p>
+                              </div>
+                            </div>
+                            <span className="text-sm font-semibold text-emerald-400">{formatCurrency(step.amount)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                } catch (_) { return null; }
+              })()}
 
               {selected.receiptUrl && (
                 <div className="mt-4">
@@ -357,7 +448,7 @@ const Invoices = () => {
         })()}
       </Modal>
 
-      {/* ── Edit Invoice Modal ── */}
+      {/* â”€â”€ Edit Invoice Modal â”€â”€ */}
       {editInvoice && (
         <Modal isOpen={isEditOpen} onClose={() => { setIsEditOpen(false); setEditInvoice(null); }} title="Edit Invoice">
           <form className="space-y-4" onSubmit={handleEditSave}>
@@ -400,7 +491,7 @@ const Invoices = () => {
         </Modal>
       )}
 
-      {/* ── Upload Invoice Modal ── */}
+      {/* â”€â”€ Upload Invoice Modal â”€â”€ */}
       <Modal isOpen={isUploadOpen} onClose={() => { setIsUploadOpen(false); setSelectedFile(null); }} title="Upload Vendor Invoice">
         <form className="space-y-4" onSubmit={handleAddInvoice}>
           <div 
@@ -481,6 +572,122 @@ const Invoices = () => {
           </div>
         </form>
       </Modal>
+      {/* ── Partial Payment Modal ── */}
+      {paymentModal.open && paymentModal.invoice && (() => {
+        const inv = paymentModal.invoice;
+        const alreadyPaid = parseFloat(inv.amountPaid) || 0;
+        const total = parseFloat(inv.amountValue) || 0;
+        const remaining = total - alreadyPaid;
+        const pct = total > 0 ? Math.min((alreadyPaid / total) * 100, 100) : 0;
+        const inputAmt = parseFloat(paymentModal.inputValue) || 0;
+        const afterPct = total > 0 ? Math.min(((alreadyPaid + inputAmt) / total) * 100, 100) : 0;
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setPaymentModal({ open: false, invoice: null, inputValue: '', error: '' })} />
+            <div className="relative bg-slate-900 border border-slate-700/60 rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-5">
+              {/* Header */}
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-bold text-slate-50">Record Payment</h3>
+                  <p className="text-xs text-slate-400 mt-0.5">{inv.vendorName} · {inv.invoiceNumber}</p>
+                </div>
+                <button onClick={() => setPaymentModal({ open: false, invoice: null, inputValue: '', error: '' })} className="text-slate-500 hover:text-slate-300 transition-colors text-xl leading-none">×</button>
+              </div>
+
+              {/* Progress */}
+              <div className="bg-slate-800/60 rounded-xl p-4 space-y-3">
+                <div className="flex justify-between text-xs text-slate-400 mb-1">
+                  <span>Payment Progress</span>
+                  <span>{pct.toFixed(0)}% paid</span>
+                </div>
+                <div className="h-2.5 bg-slate-700 rounded-full overflow-hidden">
+                  <div className="h-full rounded-full transition-all duration-500"
+                    style={{ width: `${afterPct}%`, background: afterPct >= 100 ? '#10b981' : 'linear-gradient(90deg,#10b981,#06b6d4)' }} />
+                </div>
+                <div className="grid grid-cols-3 gap-2 text-center text-xs">
+                  <div>
+                    <p className="text-slate-500">Invoice Total</p>
+                    <p className="text-slate-200 font-semibold mt-0.5">{inv.amount}</p>
+                  </div>
+                  <div>
+                    <p className="text-slate-500">Already Paid</p>
+                    <p className="text-emerald-400 font-semibold mt-0.5">{formatCurrency(alreadyPaid)}</p>
+                  </div>
+                  <div>
+                    <p className="text-slate-500">Remaining</p>
+                    <p className="text-amber-400 font-semibold mt-0.5">{formatCurrency(remaining)}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Input */}
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-1.5">
+                  Payment Amount for This Installment
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-semibold">$</span>
+                  <input
+                    type="number"
+                    min="0.01"
+                    step="0.01"
+                    max={remaining}
+                    autoFocus
+                    placeholder="0.00"
+                    className="input-field pl-7 w-full text-lg font-semibold"
+                    value={paymentModal.inputValue}
+                    onChange={e => {
+                      const val = e.target.value;
+                      const parsed = parseFloat(val);
+                      // Clamp: don't allow more than remaining
+                      if (!isNaN(parsed) && parsed > remaining) {
+                        setPaymentModal(p => ({ ...p, inputValue: remaining.toFixed(2), error: `Capped at remaining balance: ${formatCurrency(remaining)}` }));
+                      } else {
+                        setPaymentModal(p => ({ ...p, inputValue: val, error: '' }));
+                      }
+                    }}
+                    onKeyDown={e => e.key === 'Enter' && submitPayment()}
+                  />
+                </div>
+                {paymentModal.error && (
+                  <p className="text-xs text-rose-400 mt-1.5 flex items-center gap-1">
+                    <span>⚠</span> {paymentModal.error}
+                  </p>
+                )}
+                {inputAmt > 0 && inputAmt <= remaining && (
+                  <p className="text-xs text-slate-400 mt-1.5">
+                    After this payment: <span className="text-emerald-400 font-semibold">{formatCurrency(alreadyPaid + inputAmt)}</span> paid · <span className="text-amber-400 font-semibold">{formatCurrency(remaining - inputAmt)}</span> pending
+                  </p>
+                )}
+              </div>
+
+              {/* Actions */}
+              <div className="flex gap-3 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setPaymentModal({ open: false, invoice: null, inputValue: '', error: '' })}
+                  className="btn-secondary flex-1"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={submitPayment}
+                  disabled={!paymentModal.inputValue || parseFloat(paymentModal.inputValue) <= 0 || parseFloat(paymentModal.inputValue) > remaining}
+                  className={`flex-1 py-2.5 px-4 rounded-lg font-semibold text-sm transition-all ${
+                    !paymentModal.inputValue || parseFloat(paymentModal.inputValue) <= 0 || parseFloat(paymentModal.inputValue) > remaining
+                      ? 'bg-slate-700 text-slate-500 cursor-not-allowed'
+                      : 'bg-gradient-to-r from-emerald-600 to-cyan-600 hover:from-emerald-500 hover:to-cyan-500 text-white shadow-lg shadow-emerald-900/30'
+                  }`}
+                >
+                  Confirm Payment
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
     </motion.div>
   );
 };

@@ -117,12 +117,12 @@ export const importCsv = (id, file) => {
 };
 
 // Event-Based Analytics
-export const trackEvent = (data) => api.post('/marketing/public/analytics/track', data);
-export const getSourceStats = () => api.get('/marketing/admin/analytics/sources');
-export const getFunnelStats = () => api.get('/marketing/admin/analytics/funnel');
-export const getConversionRate = () => api.get('/marketing/admin/analytics/conversion-rate');
-export const getCampaignStats = () => api.get('/marketing/admin/analytics/campaigns');
-export const getMediumStats = () => api.get('/marketing/admin/analytics/mediums');
+export const trackEvent = (data) => api.post('/marketing/analytics/public/track', data);
+export const getSourceStats = () => api.get('/marketing/analytics/admin/sources');
+export const getFunnelStats = () => api.get('/marketing/analytics/admin/funnel');
+export const getConversionRate = () => api.get('/marketing/analytics/admin/conversion-rate');
+export const getCampaignStats = () => api.get('/marketing/analytics/admin/campaigns');
+export const getMediumStats = () => api.get('/marketing/analytics/admin/mediums');
 
 // Media Upload
 export const uploadMedia = (file) => {

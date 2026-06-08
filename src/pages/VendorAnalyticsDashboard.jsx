@@ -1,4 +1,4 @@
-import { motion } from 'framer-motion';
+﻿import { motion } from 'framer-motion';
 import api from '../services/api';
 import { 
   Users, 
@@ -66,7 +66,7 @@ const VendorAnalyticsDashboard = () => {
       try {
         setIsLoading(true);
         const response = await api.get(`/api/vendor-dashboard?filter=${encodeURIComponent(spendFilter)}`);
-        if (response.data.success) {
+        if (response.data && response.data.data) {
           setData(response.data.data);
         }
       } catch (error) {

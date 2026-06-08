@@ -46,7 +46,8 @@ export default function Dashboard() {
       <div className="mb-5">
         <h5 className="fw-bold text-dark mb-1">Dashboard</h5>
         <p className="text-muted small mb-0">
-          Welcome back, <strong>{user?.email?.split('@')[0] || 'User'}</strong> · {isPlatformAdmin ? 'Platform Admin' : 'Tenant Admin'}
+          Welcome back, <strong>{user?.email?.split('@')[0] || 'User'}</strong>
+          {isPlatformAdmin ? ' · Platform Admin' : ''}
         </p>
       </div>
 
@@ -61,10 +62,14 @@ export default function Dashboard() {
         </>
       ) : (
         <div className="row g-4 mb-5">
-          <StatCard title="Total Users" value={stats.totalUsers} color="primary" loading={loading}
-            icon="👥" sub="Across your organisation" onClick={() => navigate('/users')} />
-          <StatCard title="Active Roles" value={stats.totalRoles} color="success" loading={loading}
-            icon="🔑" sub="Roles configured" onClick={() => navigate('/roles')} />
+          {hasPermission('USER_VIEW') && (
+            <StatCard title="Total Users" value={stats.totalUsers} color="primary" loading={loading}
+              icon="👥" sub="Across your organisation" onClick={() => navigate('/users')} />
+          )}
+          {hasPermission('ROLE_VIEW') && (
+            <StatCard title="Active Roles" value={stats.totalRoles} color="success" loading={loading}
+              icon="🔑" sub="Roles configured" onClick={() => navigate('/roles')} />
+          )}
         </div>
       )}
 
@@ -80,10 +85,14 @@ export default function Dashboard() {
             <button className="btn btn-outline-primary btn-sm fw-medium" style={{ height: 34 }}
               onClick={() => navigate('/roles/create')}>+ Add Role</button>
           )}
-          <button className="btn btn-outline-secondary btn-sm fw-medium" style={{ height: 34 }}
-            onClick={() => navigate('/users')}>View All Users</button>
-          <button className="btn btn-outline-secondary btn-sm fw-medium" style={{ height: 34 }}
-            onClick={() => navigate('/roles')}>View All Roles</button>
+          {hasPermission('USER_VIEW') && (
+            <button className="btn btn-outline-secondary btn-sm fw-medium" style={{ height: 34 }}
+              onClick={() => navigate('/users')}>View All Users</button>
+          )}
+          {hasPermission('ROLE_VIEW') && (
+            <button className="btn btn-outline-secondary btn-sm fw-medium" style={{ height: 34 }}
+              onClick={() => navigate('/roles')}>View All Roles</button>
+          )}
         </div>
       </div>
     </div>

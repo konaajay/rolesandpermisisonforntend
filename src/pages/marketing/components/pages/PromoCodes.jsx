@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { LuPlus, LuTicket, LuPencil, LuTrash2, LuArchive, LuPause, LuPlay } from 'react-icons/lu';
+import { usePermissions } from '../../../../auth/usePermissions';
 
 const api = axios.create({ 
     baseURL: (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080') + '/marketing/admin/coupons' 
@@ -24,6 +25,7 @@ api.interceptors.request.use((config) => {
     return config;
 });
 export default function PromoCodes() {
+    const { hasPermission } = usePermissions();
     const [coupons, setCoupons] = useState([]);
     const [viewTab, setViewTab] = useState('ACTIVE'); // ACTIVE, EXPIRED, ALL
     const [showForm, setShowForm] = useState(false);
@@ -41,7 +43,7 @@ export default function PromoCodes() {
         isFirstOrderOnly: false,
         autoApply: false,
         learnerId: '',
-        affiliateId: '',
+        
         courseIds: [],
         expiryDate: ''
     };
@@ -107,7 +109,7 @@ export default function PromoCodes() {
             isFirstOrderOnly: c.firstOrderOnly || false,
             autoApply: c.autoApply || false,
             learnerId: c.learnerId || '',
-            affiliateId: c.affiliateId || '',
+            
             courseIds: c.courseIds || [],
             expiryDate: c.expiryDate ? c.expiryDate.split('T')[0] : ''
         });
@@ -165,7 +167,7 @@ export default function PromoCodes() {
                     <h2 className="fw-bold">Promo Codes</h2>
                     <p className="text-muted small">Orchestrate discounts with precision: Edit, Pause, and Manage lifecycles.</p>
                 </div>
-                {!showForm && (
+                {!showForm && hasPermission('MARKETING_CREATE') && (
                     <button className="btn btn-primary px-4 fw-bold shadow-sm d-flex align-items-center" onClick={() => setShowForm(true)}>
                         <LuPlus className="me-2" /> Create New Code
                     </button>
@@ -302,22 +304,30 @@ export default function PromoCodes() {
                                                 </td>
                                                 <td className="text-end pe-4">
                                                     <div className="btn-group shadow-sm">
-                                                        <button className="btn btn-sm btn-light border" onClick={() => handleEdit(c)} title="Edit Configuration">
-                                                            <LuPencil className="text-primary" />
-                                                        </button>
-                                                        <button 
-                                                            className={`btn btn-sm btn-light border ${c.status === 'ACTIVE' ? '' : 'bg-warning-subtle'}`} 
-                                                            onClick={() => handleStatusUpdate(c.id, c.status)} 
-                                                            title={c.status === 'ACTIVE' ? 'Pause Promotion' : 'Resume Promotion'}
-                                                        >
-                                                            {c.status === 'ACTIVE' ? <LuPause className="text-warning" /> : <LuPlay className="text-success" />}
-                                                        </button>
-                                                        <button className="btn btn-sm btn-light border" onClick={() => handleSoftDelete(c.id)} title="Archive (Soft Delete)">
-                                                            <LuArchive className="text-danger" />
-                                                        </button>
-                                                        <button className="btn btn-sm btn-light border" onClick={() => handleHardDelete(c.id)} title="Permanent Delete (CRITICAL)">
-                                                            <LuTrash2 className="text-danger" />
-                                                        </button>
+                                                        {hasPermission('MARKETING_UPDATE') && (
+                                                            <>
+                                                                <button className="btn btn-sm btn-light border" onClick={() => handleEdit(c)} title="Edit Configuration">
+                                                                    <LuPencil className="text-primary" />
+                                                                </button>
+                                                                <button 
+                                                                    className={`btn btn-sm btn-light border ${c.status === 'ACTIVE' ? '' : 'bg-warning-subtle'}`} 
+                                                                    onClick={() => handleStatusUpdate(c.id, c.status)} 
+                                                                    title={c.status === 'ACTIVE' ? 'Pause Promotion' : 'Resume Promotion'}
+                                                                >
+                                                                    {c.status === 'ACTIVE' ? <LuPause className="text-warning" /> : <LuPlay className="text-success" />}
+                                                                </button>
+                                                            </>
+                                                        )}
+                                                        {hasPermission('MARKETING_DELETE') && (
+                                                            <>
+                                                                <button className="btn btn-sm btn-light border" onClick={() => handleSoftDelete(c.id)} title="Archive (Soft Delete)">
+                                                                    <LuArchive className="text-danger" />
+                                                                </button>
+                                                                <button className="btn btn-sm btn-light border" onClick={() => handleHardDelete(c.id)} title="Permanent Delete (CRITICAL)">
+                                                                    <LuTrash2 className="text-danger" />
+                                                                </button>
+                                                            </>
+                                                        )}
                                                     </div>
                                                 </td>
                                             </tr>
