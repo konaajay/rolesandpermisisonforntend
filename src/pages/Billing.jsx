@@ -9,9 +9,11 @@ export default function Billing() {
   const [loading, setLoading] = useState(true);
   const [upgrading, setUpgrading] = useState(false);
   const [currentPlan, setCurrentPlan] = useState(null);
+  const [dbPlans, setDbPlans] = useState([]);
 
   useEffect(() => {
     fetchHistory();
+    fetchPlans();
   }, []);
 
   const fetchHistory = async () => {
@@ -31,13 +33,26 @@ export default function Billing() {
     }
   };
 
-  const handleUpgrade = async (planName, amount, durationDays) => {
+  const fetchPlans = async () => {
+    try {
+      const res = await api.get('/subscription-plans/all');
+      if (res.data) {
+        setDbPlans(res.data);
+      }
+    } catch (error) {
+      console.error("Error fetching plans", error);
+    }
+  };
+
+  const handleUpgrade = async (planId, planName, amount, durationDays) => {
     try {
       setUpgrading(true);
       // Mock payment flow
       const req = {
+        planId,
         planName,
         amount,
+        billingInterval: 'MONTHLY',
         durationDays,
         paymentReference: 'PAY-' + Math.random().toString(36).substring(2, 10).toUpperCase()
       };
@@ -55,11 +70,11 @@ export default function Billing() {
     }
   };
 
-  const plans = [
-    { name: 'Starter', price: 99, days: 30, icon: <Zap className="w-6 h-6 text-yellow-400" />, features: ['Up to 10 Users', 'Basic Modules', 'Email Support'] },
-    { name: 'Professional', price: 299, days: 30, icon: <Shield className="w-6 h-6 text-blue-400" />, features: ['Up to 50 Users', 'All Modules', 'Priority Support', 'Custom Branding'] },
-    { name: 'Enterprise', price: 999, days: 30, icon: <Crown className="w-6 h-6 text-purple-400" />, features: ['Unlimited Users', 'Dedicated Success Manager', '24/7 Phone Support', 'Custom Integrations'] }
-  ];
+  const getPlanIcon = (name) => {
+    if (name.includes('Enterprise')) return <Crown className="w-6 h-6 text-purple-400" />;
+    if (name.includes('Professional')) return <Shield className="w-6 h-6 text-blue-400" />;
+    return <Zap className="w-6 h-6 text-yellow-400" />;
+  };
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-8">
@@ -109,8 +124,8 @@ export default function Billing() {
       <div>
         <h2 className="text-lg font-semibold text-slate-100 mb-4">Available Plans</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {plans.map((plan) => (
-            <div key={plan.name} className={`bg-slate-800 border ${currentPlan?.planName === plan.name ? 'border-cyan-500 shadow-[0_0_15px_rgba(6,182,212,0.2)]' : 'border-slate-700'} rounded-xl p-6 flex flex-col relative overflow-hidden transition-all hover:-translate-y-1 hover:border-slate-500`}>
+          {dbPlans.map((plan) => (
+            <div key={plan.id} className={`bg-slate-800 border ${currentPlan?.planName === plan.name ? 'border-cyan-500 shadow-[0_0_15px_rgba(6,182,212,0.2)]' : 'border-slate-700'} rounded-xl p-6 flex flex-col relative overflow-hidden transition-all hover:-translate-y-1 hover:border-slate-500`}>
               {currentPlan?.planName === plan.name && (
                 <div className="absolute top-0 right-0 bg-cyan-500 text-white text-[10px] font-bold px-3 py-1 rounded-bl-lg">
                   CURRENT
@@ -118,25 +133,27 @@ export default function Billing() {
               )}
               <div className="flex items-center gap-3 mb-4">
                 <div className="p-3 bg-slate-900 rounded-lg">
-                  {plan.icon}
+                  {getPlanIcon(plan.name)}
                 </div>
                 <div>
                   <h3 className="font-bold text-lg text-slate-100">{plan.name}</h3>
-                  <p className="text-2xl font-black text-white">${plan.price}<span className="text-sm font-normal text-slate-400">/mo</span></p>
+                  <p className="text-2xl font-black text-white">${plan.monthlyPrice}<span className="text-sm font-normal text-slate-400">/mo</span></p>
                 </div>
               </div>
               
               <ul className="space-y-3 mb-8 flex-grow">
-                {plan.features.map((feature, i) => (
-                  <li key={i} className="flex items-center gap-2 text-sm text-slate-300">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-                    {feature}
-                  </li>
-                ))}
+                <li className="flex items-center gap-2 text-sm text-slate-300">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                  {plan.maxUsers ? `Up to ${plan.maxUsers} Users` : 'Unlimited Users'}
+                </li>
+                <li className="flex items-center gap-2 text-sm text-slate-300">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                  Includes {plan.modules?.length || 0} Modules
+                </li>
               </ul>
               
               <button 
-                onClick={() => handleUpgrade(plan.name, plan.price, plan.days)}
+                onClick={() => handleUpgrade(plan.id, plan.name, plan.monthlyPrice, 30)}
                 disabled={upgrading || currentPlan?.planName === plan.name}
                 className={`w-full py-2.5 rounded-lg font-medium transition-colors ${
                   currentPlan?.planName === plan.name 

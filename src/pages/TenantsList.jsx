@@ -12,11 +12,12 @@ export default function TenantsList() {
     setTimeout(() => setToast(null), 4000);
   };
   const [selectedTenant, setSelectedTenant] = useState(null);
-  const [initialModules, setInitialModules] = useState([]);
-  const [moduleDetails, setModuleDetails] = useState({});
+  const [plans, setPlans] = useState([]);
+  const [assignForm, setAssignForm] = useState({ planId: '', billingInterval: 'MONTHLY', amount: '', paymentReference: '', endDate: '', customModules: [] });
 
   const ALL_MODULES = [
-    'CRM', 'HRMS', 'VENDOR'
+    'ADMIN', 'AFFILIATE', 'ATTENDANCE', 'COURSE', 'CRM', 'EMPLOYEE', 
+    'HRMS', 'LEAD', 'LMS', 'MARKETING', 'PAYROLL', 'VENDOR'
   ];
 
   const fetchTenants = async () => {
@@ -28,8 +29,18 @@ export default function TenantsList() {
     }
   };
 
+  const fetchPlans = async () => {
+    try {
+      const response = await api.get('/subscription-plans/all');
+      setPlans(response.data);
+    } catch (err) {
+      console.error("Failed to fetch plans", err);
+    }
+  };
+
   useEffect(() => {
     fetchTenants();
+    fetchPlans();
   }, []);
 
   const handleToggleStatus = async (tenant) => {
@@ -47,77 +58,67 @@ export default function TenantsList() {
     }
   };
 
-  const handleManageModules = async (tenant) => {
+  const handleManageSubscription = (tenant) => {
     setSelectedTenant(tenant);
-    try {
-      const response = await api.get(`/tenants/${tenant.id}/modules`);
-      const activeModules = response.data.filter(m => m.active).map(m => m.moduleName);
-      setInitialModules(activeModules);
-      
-      const details = {};
-      ALL_MODULES.forEach(m => {
-        details[m] = {
-          active: false,
-          amount: '',
-          paymentMethod: 'Card',
-          specialRequirements: '',
-          extraCharges: ''
-        };
-      });
-      response.data.forEach(m => {
-        if (details[m.moduleName]) {
-          details[m.moduleName] = {
-            active: m.active,
-            amount: m.amount !== null && m.amount !== undefined ? m.amount : '',
-            paymentMethod: m.paymentMethod || 'Card',
-            specialRequirements: m.specialRequirements || '',
-            extraCharges: m.extraCharges !== null && m.extraCharges !== undefined ? m.extraCharges : ''
-          };
-        }
-      });
-      setModuleDetails(details);
-    } catch (err) {
-      showToast('error', "Failed to fetch modules: " + (err.response?.data?.message || err.message));
+    setAssignForm({
+      planId: '',
+      billingInterval: 'MONTHLY',
+      amount: '',
+      paymentReference: '',
+      endDate: '',
+      customModules: []
+    });
+  };
+
+  const handleModuleToggle = (mod) => {
+    setAssignForm(prev => {
+      const isSelected = prev.customModules.includes(mod);
+      if (isSelected) {
+        return { ...prev, customModules: prev.customModules.filter(m => m !== mod) };
+      } else {
+        return { ...prev, customModules: [...prev.customModules, mod] };
+      }
+    });
+  };
+
+  const handlePlanChange = (planId) => {
+    const plan = plans.find(p => p.id.toString() === planId);
+    setAssignForm({
+      ...assignForm,
+      planId,
+      amount: plan ? (assignForm.billingInterval === 'YEARLY' ? plan.yearlyPrice : plan.monthlyPrice) : ''
+    });
+  };
+
+  const handleIntervalChange = (billingInterval) => {
+    const plan = plans.find(p => p.id.toString() === assignForm.planId);
+    setAssignForm({
+      ...assignForm,
+      billingInterval,
+      amount: plan ? (billingInterval === 'YEARLY' ? plan.yearlyPrice : plan.monthlyPrice) : assignForm.amount
+    });
+  };
+
+  const saveSubscription = async () => {
+    if (!assignForm.planId && assignForm.customModules.length === 0) {
+      showToast('error', 'Please select a plan or choose custom modules');
+      return;
     }
-  };
-
-  const handleDetailChange = (moduleName, field, value) => {
-    setModuleDetails(prev => ({
-      ...prev,
-      [moduleName]: {
-        ...prev[moduleName],
-        [field]: value
-      }
-    }));
-  };
-
-  const saveModules = async () => {
     try {
-      const promises = [];
-      
-      for (const moduleName of ALL_MODULES) {
-        const detail = moduleDetails[moduleName] || { active: false };
-        const wasActive = initialModules.includes(moduleName);
-        
-        if (detail.active) {
-          const payload = {
-            amount: (detail.amount !== '' && !isNaN(detail.amount)) ? parseFloat(detail.amount) : null,
-            paymentMethod: detail.paymentMethod,
-            specialRequirements: detail.specialRequirements || null,
-            extraCharges: (detail.extraCharges !== '' && !isNaN(detail.extraCharges)) ? parseFloat(detail.extraCharges) : null
-          };
-          promises.push(api.put(`/tenants/${selectedTenant.id}/modules/${moduleName}/enable`, payload));
-        } else if (wasActive) {
-          promises.push(api.put(`/tenants/${selectedTenant.id}/modules/${moduleName}/disable`));
-        }
-      }
-
-      await Promise.all(promises);
-      showToast('success', `Modules and subscription details updated successfully for ${selectedTenant.name}!`);
+      await api.post(`/api/subscriptions/admin/assign/${selectedTenant.id}`, {
+        planId: assignForm.planId ? parseInt(assignForm.planId) : null,
+        planName: assignForm.planId ? null : 'Custom Plan',
+        billingInterval: assignForm.billingInterval,
+        amount: assignForm.amount ? parseFloat(assignForm.amount) : null,
+        paymentReference: assignForm.paymentReference,
+        endDate: assignForm.endDate ? assignForm.endDate : null,
+        customModules: !assignForm.planId ? assignForm.customModules : []
+      });
+      showToast('success', `Subscription assigned successfully to ${selectedTenant.name}!`);
       setSelectedTenant(null);
       fetchTenants();
     } catch (err) {
-      showToast('error', "Failed to save modules: " + (err.response?.data?.message || err.message));
+      showToast('error', "Failed to assign subscription: " + (err.response?.data?.message || err.message));
     }
   };
 
@@ -204,9 +205,9 @@ export default function TenantsList() {
                           </button>
                           <button
                             className="btn btn-warning btn-sm me-2 text-dark"
-                            onClick={() => handleManageModules(tenant)}
+                            onClick={() => handleManageSubscription(tenant)}
                           >
-                            Modules
+                            Subscription
                           </button>
                           <button
                             className={`btn btn-${tenant.active ? 'danger' : 'success'} btn-sm`}
@@ -227,97 +228,100 @@ export default function TenantsList() {
 
       {selectedTenant && (
         <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)', overflowY: 'auto' }}>
-          <div className="modal-dialog modal-lg">
+          <div className="modal-dialog">
             <div className="modal-content">
               <div className="modal-header bg-dark text-white">
                 <h5 className="modal-title">
-                  Manage Modules for <strong>{selectedTenant.name}</strong>
+                  Assign Subscription to <strong>{selectedTenant.name}</strong>
                 </h5>
                 <button type="button" className="btn-close btn-close-white" onClick={() => setSelectedTenant(null)}></button>
               </div>
-              <div className="modal-body" style={{ maxHeight: '70vh', overflowY: 'auto' }}>
-                <p className="text-muted mb-4">Toggle the modules below to grant or revoke access, and specify payment and requirement details.</p>
+              <div className="modal-body">
+                <p className="text-muted mb-4">Select a subscription plan to automatically assign the corresponding modules and update the tenant's expiry date.</p>
                 
-                <div className="row">
-                  {ALL_MODULES.map(moduleName => {
-                    const detail = moduleDetails[moduleName] || { active: false, amount: '', paymentMethod: 'Card', specialRequirements: '', extraCharges: '' };
-                    const isActive = detail.active;
-                    return (
-                      <div className="col-12 mb-3" key={moduleName}>
-                        <div className={`card ${isActive ? 'border-primary shadow-sm' : 'border-secondary'}`} style={{ borderRadius: '12px' }}>
-                          <div className="card-body">
-                            <div className="d-flex justify-content-between align-items-center">
-                              <span className="fw-bold fs-6">{moduleName}</span>
-                              <div className="form-check form-switch">
-                                <input 
-                                  className="form-check-input" 
-                                  type="checkbox" 
-                                  role="switch" 
-                                  style={{ transform: 'scale(1.3)', cursor: 'pointer' }}
-                                  checked={isActive}
-                                  onChange={() => handleDetailChange(moduleName, 'active', !isActive)}
-                                />
-                              </div>
-                            </div>
-                            
-                            {isActive && (
-                              <div className="row mt-3 p-3 bg-light rounded" style={{ border: '1px solid #e9ecef', fontSize: '13px' }}>
-                                <div className="col-md-3 mb-2">
-                                  <label className="form-label mb-1 text-muted fw-semibold">Amount (Price)</label>
-                                  <input 
-                                    type="number" 
-                                    className="form-control form-control-sm"
-                                    value={detail.amount}
-                                    placeholder="e.g. 150"
-                                    onChange={(e) => handleDetailChange(moduleName, 'amount', e.target.value)}
-                                  />
-                                </div>
-                                <div className="col-md-3 mb-2">
-                                  <label className="form-label mb-1 text-muted fw-semibold">How Paid</label>
-                                  <select 
-                                    className="form-select form-select-sm"
-                                    value={detail.paymentMethod}
-                                    onChange={(e) => handleDetailChange(moduleName, 'paymentMethod', e.target.value)}
-                                  >
-                                    <option value="Card">Credit/Debit Card</option>
-                                    <option value="Cash">Cash</option>
-                                    <option value="Bank Transfer">Bank Transfer</option>
-                                    <option value="UPI / Wallet">UPI / Wallet</option>
-                                    <option value="Unpaid">Unpaid / Deferred</option>
-                                  </select>
-                                </div>
-                                <div className="col-md-4 mb-2">
-                                  <label className="form-label mb-1 text-muted fw-semibold">Special Requirements</label>
-                                  <input 
-                                    type="text" 
-                                    className="form-control form-control-sm"
-                                    value={detail.specialRequirements}
-                                    placeholder="e.g. Custom sequence format"
-                                    onChange={(e) => handleDetailChange(moduleName, 'specialRequirements', e.target.value)}
-                                  />
-                                </div>
-                                <div className="col-md-2 mb-2">
-                                  <label className="form-label mb-1 text-muted fw-semibold">Extra Charges</label>
-                                  <input 
-                                    type="number" 
-                                    className="form-control form-control-sm"
-                                    value={detail.extraCharges}
-                                    placeholder="e.g. 50"
-                                    onChange={(e) => handleDetailChange(moduleName, 'extraCharges', e.target.value)}
-                                  />
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
+                <div className="mb-3">
+                  <label className="form-label fw-bold">Select Plan</label>
+                  <select 
+                    className="form-select"
+                    value={assignForm.planId}
+                    onChange={(e) => handlePlanChange(e.target.value)}
+                  >
+                    <option value="">-- Custom Plan --</option>
+                    {plans.map(p => (
+                      <option key={p.id} value={p.id}>{p.name} ({p.modules.length} modules)</option>
+                    ))}
+                  </select>
                 </div>
+
+                {!assignForm.planId && (
+                  <div className="mb-3 p-3 bg-light rounded border">
+                    <label className="form-label fw-bold">Select Custom Modules</label>
+                    <div className="d-flex flex-wrap gap-2">
+                      {ALL_MODULES.map(mod => (
+                        <div className="form-check form-switch me-3" key={mod}>
+                          <input 
+                            className="form-check-input" 
+                            type="checkbox" 
+                            id={`mod_${mod}`}
+                            checked={assignForm.customModules.includes(mod)}
+                            onChange={() => handleModuleToggle(mod)}
+                          />
+                          <label className="form-check-label" htmlFor={`mod_${mod}`}>{mod}</label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="mb-3">
+                  <label className="form-label fw-bold">Billing Interval</label>
+                  <select 
+                    className="form-select"
+                    value={assignForm.billingInterval}
+                    onChange={(e) => handleIntervalChange(e.target.value)}
+                  >
+                    <option value="MONTHLY">Monthly</option>
+                    <option value="YEARLY">Yearly</option>
+                  </select>
+                </div>
+
+                <div className="mb-3">
+                  <label className="form-label fw-bold">Custom Expiry Date (Optional)</label>
+                  <input 
+                    type="date" 
+                    className="form-control"
+                    value={assignForm.endDate}
+                    onChange={(e) => setAssignForm({ ...assignForm, endDate: e.target.value })}
+                  />
+                  <div className="form-text">If left blank, the system will automatically calculate expiry based on Billing Interval.</div>
+                </div>
+
+                <div className="mb-3">
+                  <label className="form-label fw-bold">Amount Override (Optional)</label>
+                  <input 
+                    type="number" 
+                    className="form-control"
+                    value={assignForm.amount}
+                    onChange={(e) => setAssignForm({ ...assignForm, amount: e.target.value })}
+                  />
+                  <div className="form-text">Leave as default price from plan, or override for custom pricing.</div>
+                </div>
+
+                <div className="mb-3">
+                  <label className="form-label fw-bold">Payment Reference (Optional)</label>
+                  <input 
+                    type="text" 
+                    className="form-control"
+                    placeholder="e.g. Invoice #1234 or Trial"
+                    value={assignForm.paymentReference}
+                    onChange={(e) => setAssignForm({ ...assignForm, paymentReference: e.target.value })}
+                  />
+                </div>
+                
               </div>
               <div className="modal-footer">
                 <button type="button" className="btn btn-secondary" onClick={() => setSelectedTenant(null)}>Cancel</button>
-                <button type="button" className="btn btn-primary" onClick={saveModules}>Save Changes</button>
+                <button type="button" className="btn btn-primary" onClick={saveSubscription}>Assign Subscription</button>
               </div>
             </div>
           </div>
